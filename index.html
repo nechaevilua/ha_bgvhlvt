@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Стили остаются без изменений, как в вашем коде */
         :root {
             --primary: #00a3ff;
             --primary-dark: #0088cc;
@@ -1494,14 +1495,24 @@
                 enabled: true,
                 priority: 4,
                 priceApi: 'https://api.mexc.com/api/v3/ticker/price?symbol=',
-                formatSymbol: (symbol) => symbol.toUpperCase(),
+                // Важное исправление для MEXC
+                formatSymbol: (symbol) => {
+                    if (symbol.includes('USDT')) {
+                        // MEXC ожидает формат типа BTC_USDT для некоторых пар
+                        return symbol.replace('USDT', '_USDT');
+                    }
+                    return symbol.toUpperCase();
+                },
                 parsePrice: (data) => {
                     try {
                         return data && data.price ? parseFloat(data.price) : null;
                     } catch {
                         return null;
                     }
-                }
+                },
+                // Дополнительные настройки для улучшения стабильности
+                fetchTimeout: 4000, // таймаут в мс
+                retryCount: 2 // количество попыток
             }
         };
 
@@ -1527,7 +1538,9 @@
             lastPriceCheck: 0,
             pricePrecision: 8,
             fees: { ...CONFIG.fees },
-            totalCommissionPaid: 0
+            totalCommissionPaid: 0,
+            // Добавляем таймер для debounce
+            symbolSearchTimeout: null
         };
 
         // ========== DOM ELEMENTS ==========
@@ -1621,8 +1634,7 @@
                 const testSymbol = 'BTCUSDT';
                 const formattedSymbol = exchange.formatSymbol(testSymbol);
                 
-                let testUrl;
-                testUrl = exchange.priceApi + formattedSymbol;
+                let testUrl = exchange.priceApi + formattedSymbol;
                 
                 // Быстрый таймаут для теста
                 const controller = new AbortController();
@@ -1665,9 +1677,9 @@
                 const formattedSymbol = exchange.formatSymbol(symbol);
                 let url = exchange.priceApi + formattedSymbol;
                 
-                // Увеличиваем таймаут для стабильности
+                // Устанавливаем глобальный timeout для всего запроса
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const globalTimeout = setTimeout(() => controller.abort(), 6000);
                 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -1677,7 +1689,7 @@
                     signal: controller.signal
                 });
                 
-                clearTimeout(timeoutId);
+                clearTimeout(globalTimeout);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
@@ -2778,6 +2790,18 @@
             document.getElementById('save-balance-btn').addEventListener('click', saveBalance);
             document.getElementById('reset-balance-btn').addEventListener('click', resetBalance);
             document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
+            
+            // ОБНОВЛЕНО: Добавлен debounce для поля ввода символа
+            let symbolInputTimeout = null;
+            elements.symbolInput.addEventListener('input', () => {
+                // Очищаем предыдущий таймаут
+                clearTimeout(symbolInputTimeout);
+                
+                // Устанавливаем новый таймаут на 500 мс
+                symbolInputTimeout = setTimeout(() => {
+                    updateSymbol();
+                }, 500);
+            });
             
             elements.updateSymbolBtn.addEventListener('click', updateSymbol);
             
