@@ -3,1574 +3,3233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Постраничный Переводчик Книг</title>
+    <title>Paper Trading Simulator - Multi Exchange</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #00a3ff;
+            --primary-dark: #0088cc;
+            --success: #00d27a;
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --dark-bg: #0a0e17;
+            --dark-card: #141a29;
+            --dark-border: #1e2538;
+            --text-primary: #ffffff;
+            --text-secondary: #8a94a6;
+            --text-muted: #5a6478;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
             min-height: 100vh;
-            padding: 15px;
+            overflow-x: hidden;
         }
 
         .container {
             max-width: 1800px;
             margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(30, 41, 59, 0.8);
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 8px;
-            background: linear-gradient(90deg, #60a5fa, #3b82f6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .subtitle {
-            font-size: 0.95rem;
-            color: #94a3b8;
-            margin-bottom: 15px;
-        }
-
-        .main-content {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 15px;
-            margin-bottom: 20px;
-            height: 75vh;
-            min-height: 600px;
-        }
-
-        .panel {
-            flex: 1;
-            min-width: 300px;
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
+            gap: 20px;
         }
 
-        .panel-header {
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--dark-card) 0%, #1a2238 100%);
+            border-radius: 16px;
+            padding: 20px 32px;
+            border: 1px solid var(--dark-border);
+            flex-shrink: 0;
+        }
+
+        .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #cbd5e1;
+            margin-bottom: 20px;
         }
 
-        .panel-title {
-            font-size: 1.3rem;
-            color: #1e293b;
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .header-price-info {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 15px;
+            min-width: 200px;
+            border: 1px solid var(--dark-border);
+        }
+
+        .header-price-info .symbol {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .header-price-info .price {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .header-price-info .change {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .change.positive { color: var(--success); }
+        .change.negative { color: var(--danger); }
+
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--dark-border);
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 18px;
             font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-card .sub-value {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Connection Status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        .status-dot.connecting {
+            background: var(--warning);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 800px;
+            margin-bottom: 20px;
+        }
+
+        /* Left Panel - Orders & Log */
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0;
+        }
+
+        /* Right Panel - Trading */
+        .right-panel {
+            width: 450px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--dark-card);
+            border-radius: 16px;
+            border: 1px solid var(--dark-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--dark-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .controls {
+        .card-body {
+            padding: 20px;
+            flex: 1;
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-            background: rgba(30, 41, 59, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .file-upload {
-            position: relative;
+            flex-direction: column;
             overflow: hidden;
-            display: inline-block;
         }
 
-        .btn {
-            background: linear-gradient(90deg, #3b82f6, #2563eb);
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
+        /* Active Orders Card */
+        .active-orders-card {
+            min-height: 300px;
+        }
+
+        .active-orders-card .card-body {
+            padding: 0;
+        }
+
+        /* History Orders Card */
+        .history-orders-card {
+            min-height: 250px;
+        }
+
+        .history-orders-card .card-body {
+            padding: 0;
+        }
+
+        /* Log Card */
+        .log-card {
+            flex: 1;
+            min-height: 200px;
+        }
+
+        .log-card .card-body {
+            padding: 0;
+        }
+
+        /* Scrollable Content */
+        .scrollable-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 200px;
+            padding-right: 5px;
+        }
+
+        /* Tables */
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 600px;
+        }
+
+        .orders-table th {
+            text-align: left;
+            padding: 12px 16px;
             font-weight: 600;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid var(--dark-border);
+            background: rgba(255, 255, 255, 0.02);
+            position: sticky;
+            top: 0;
+            z-index: 1;
             white-space: nowrap;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+        .orders-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            white-space: nowrap;
         }
 
-        .btn:active {
-            transform: translateY(0);
+        .orders-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
         }
 
-        .btn-secondary {
-            background: linear-gradient(90deg, #8b5cf6, #7c3aed);
-        }
-
-        .btn-success {
-            background: linear-gradient(90deg, #10b981, #059669);
-        }
-
-        .btn-warning {
-            background: linear-gradient(90deg, #f59e0b, #d97706);
-        }
-
-        .btn-chat {
-            background: linear-gradient(90deg, #06b6d4, #0891b2);
-        }
-
-        .file-input {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        .select-container {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
+        /* Log Scroll */
+        .log-scroll {
             flex: 1;
-            min-width: 170px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 150px;
+            padding: 20px;
         }
 
-        label {
-            font-size: 0.85rem;
-            color: #cbd5e1;
+        .log-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .log-message {
+            font-size: 12px;
+            line-height: 1.4;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .log-message.success { color: var(--success); }
+        .log-message.error { color: var(--danger); }
+        .log-message.info { color: var(--text-secondary); }
+        .log-message.warning { color: var(--warning); }
+
+        /* Status Badges */
+        .status-badge, .side-badge, .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status-active {
+            background: rgba(0, 210, 122, 0.1);
+            color: var(--success);
+        }
+
+        .status-filled {
+            background: rgba(0, 163, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .status-cancelled {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+        }
+
+        .status-pending {
+            background: rgba(255, 165, 2, 0.1);
+            color: var(--warning);
+        }
+
+        .status-triggered {
+            background: rgba(255, 165, 2, 0.2);
+            color: var(--warning);
+        }
+
+        .status-activated {
+            background: rgba(255, 165, 2, 0.3);
+            color: var(--warning);
+        }
+
+        .side-buy {
+            background: rgba(0, 210, 122, 0.1);
+            color: var(--success);
+        }
+
+        .side-sell {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+        }
+
+        .type-market {
+            background: rgba(0, 210, 122, 0.15);
+            color: var(--success);
+        }
+
+        .type-limit {
+            background: rgba(0, 163, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .type-stop-limit {
+            background: rgba(255, 165, 2, 0.1);
+            color: var(--warning);
+        }
+
+        .type-oco {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+        }
+
+        /* Commission Badge */
+        .commission-badge {
+            background: rgba(0, 163, 255, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
             font-weight: 600;
         }
 
-        select, input {
-            padding: 9px 11px;
-            border-radius: 8px;
-            border: 1px solid #475569;
-            background: rgba(15, 23, 42, 0.9);
-            color: #e2e8f0;
-            font-size: 0.9rem;
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
         }
 
-        select:focus, input:focus {
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1);
         }
 
-        .content-area {
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Amount Controls */
+        .amount-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .amount-btn {
             flex: 1;
-            background: white;
-            border-radius: 8px;
-            padding: 12px;
-            overflow-y: auto;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            border: 1px solid #e2e8f0;
-            color: #334155;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 #f1f5f9;
-        }
-
-        .content-area::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .content-area::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 4px;
-        }
-
-        .content-area::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
-        .content-area::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        .content-area img {
-            max-width: 100%;
-            height: auto;
-            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0, 163, 255, 0.1);
+            border: 1px solid rgba(0, 163, 255, 0.3);
+            color: var(--text-secondary);
             border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid #ddd;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
-        .page-controls {
+        .amount-btn:hover {
+            background: rgba(0, 163, 255, 0.2);
+        }
+
+        .amount-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Slider */
+        .slider-container {
+            margin-top: 8px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-labels {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #cbd5e1;
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
-        .page-info {
-            font-weight: 600;
-            color: #3b82f6;
-            padding: 5px 10px;
-            border-radius: 6px;
-            background: rgba(59, 130, 246, 0.1);
-            font-size: 0.85rem;
-        }
-
-        .translation-status {
-            margin-top: 10px;
-            padding: 8px 10px;
-            border-radius: 6px;
-            background: rgba(0, 0, 0, 0.05);
-            font-size: 0.8rem;
-            text-align: center;
-            color: #475569;
-        }
-
-        .status-success {
-            color: #059669;
-            background: rgba(5, 150, 105, 0.1);
-        }
-
-        .status-error {
-            color: #dc2626;
-            background: rgba(220, 38, 38, 0.1);
-        }
-
-        .status-info {
-            color: #2563eb;
-            background: rgba(37, 99, 235, 0.1);
-        }
-
-        .status-warning {
-            color: #d97706;
-            background: rgba(217, 119, 6, 0.1);
-        }
-
-        /* Локальный чат стили */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-        }
-
-        .chat-header {
-            padding: 12px 15px;
-            background: linear-gradient(90deg, #06b6d4, #0891b2);
-            color: white;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .chat-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 15px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
+        /* Linked Inputs */
+        .linked-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
-            background: #f8fafc;
         }
 
-        .message {
-            padding: 10px 15px;
-            border-radius: 12px;
-            max-width: 85%;
-            line-height: 1.5;
-        }
-
-        .message-user {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message-assistant {
-            background: white;
-            color: #334155;
-            border: 1px solid #e2e8f0;
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .message-system {
-            background: #f1f5f9;
-            color: #64748b;
-            align-self: center;
-            font-size: 0.85rem;
-            font-style: italic;
-            max-width: 95%;
-            text-align: center;
-            border: 1px dashed #cbd5e1;
-        }
-
-        .chat-input-area {
-            padding: 12px;
-            background: white;
-            border-top: 1px solid #e2e8f0;
+        .linked-input-group {
             display: flex;
-            gap: 8px;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 10px 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            resize: none;
-            min-height: 44px;
-            max-height: 100px;
-            font-family: inherit;
-        }
-
-        .chat-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-
-        .send-btn {
-            padding: 10px 20px;
-            background: linear-gradient(90deg, #10b981, #059669);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 6px;
         }
 
-        .send-btn:hover {
-            background: linear-gradient(90deg, #059669, #047857);
+        .linked-input-label {
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #60a5fa;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .text-stats {
+        /* Total Cost */
+        .total-cost {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 4px;
+            font-size: 14px;
             display: flex;
             justify-content: space-between;
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-bottom: 8px;
-            padding-bottom: 5px;
-            border-bottom: 1px dashed #cbd5e1;
         }
 
-        .image-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            margin: 12px 0;
-        }
-
-        .image-gallery img {
-            width: 100%;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .image-gallery img:hover {
-            transform: scale(1.03);
-        }
-
-        .fullscreen-image {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 2000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        .fullscreen-image img {
-            max-width: 90%;
-            max-height: 80%;
+        .commission-display {
+            background: rgba(255, 255, 255, 0.02);
             border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-        }
-
-        .close-fullscreen {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #ef4444;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 1.2rem;
-            cursor: pointer;
-            z-index: 2001;
-        }
-
-        .close-fullscreen:hover {
-            background: #dc2626;
-        }
-
-        .image-counter-fullscreen {
-            color: white;
-            margin-top: 15px;
-            font-size: 0.9rem;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 6px 12px;
-            border-radius: 20px;
-        }
-
-        .instructions {
-            margin-top: 20px;
-            background: rgba(30, 41, 59, 0.8);
-            padding: 15px;
-            border-radius: 10px;
-            color: #94a3b8;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .instructions h3 {
-            color: #60a5fa;
-            margin-bottom: 8px;
-            font-size: 1.1rem;
-        }
-
-        .instructions ol {
-            padding-left: 20px;
-            margin-bottom: 10px;
-        }
-
-        .instructions li {
-            margin-bottom: 6px;
-            line-height: 1.5;
-            font-size: 0.9rem;
-        }
-
-        .quick-actions {
+            padding: 8px 16px;
+            margin-top: 4px;
+            font-size: 12px;
             display: flex;
-            gap: 8px;
-            margin-top: 12px;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            color: var(--text-secondary);
         }
 
-        .action-btn {
-            padding: 6px 12px;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            color: #3b82f6;
-            border-radius: 6px;
-            font-size: 0.8rem;
+        /* Buttons */
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 5px;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Order Type Selector */
+        .order-type-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .order-type-btn {
+            padding: 10px;
+            border: 1px solid var(--dark-border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .order-type-btn.active {
+            border-color: var(--primary);
+            background: rgba(0, 163, 255, 0.1);
+            color: var(--primary);
+        }
+
+        /* Symbol Input */
+        .symbol-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .symbol-input-group .form-control {
+            flex: 1;
+        }
+
+        /* Symbol Search */
+        .symbol-search-container {
+            position: relative;
+        }
+
+        .symbol-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            margin-top: 4px;
+        }
+
+        .symbol-search-results.active {
+            display: block;
+        }
+
+        .symbol-result {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .symbol-result:hover {
+            background: rgba(0, 163, 255, 0.1);
+        }
+
+        .symbol-result .symbol {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .symbol-result .exchange {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: rgba(0, 163, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* OCO Section */
+        .oco-section {
+            border: 2px dashed var(--warning);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            background: rgba(255, 165, 2, 0.05);
+        }
+
+        .oco-title {
+            color: var(--warning);
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        /* Available Amount */
+        .available-amount {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Settings */
+        .settings-toggle {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--dark-card);
+            border-left: 1px solid var(--dark-border);
+            padding: 20px;
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .settings-panel.active {
+            right: 0;
+        }
+
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .settings-overlay.active {
+            display: block;
+        }
+
+        /* Exchange Selector */
+        .exchange-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .exchange-btn {
+            padding: 10px;
+            border: 1px solid var(--dark-border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 500;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .exchange-btn.active {
+            border-color: var(--primary);
+            background: rgba(0, 163, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .exchange-btn.working {
+            border-color: var(--success);
+            background: rgba(0, 210, 122, 0.1);
+            color: var(--success);
+        }
+
+        .exchange-btn.failed {
+            border-color: var(--danger);
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+            opacity: 0.5;
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 12px;
+            transition: all 0.2s;
         }
 
         .action-btn:hover {
-            background: rgba(59, 130, 246, 0.2);
-            transform: translateY(-1px);
+            opacity: 0.8;
+            transform: scale(1.1);
         }
 
-        .chat-settings {
-            display: flex;
-            gap: 10px;
-            padding: 10px 12px;
-            background: #f1f5f9;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .api-key-input {
-            flex: 1;
-            padding: 8px 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 0.85rem;
-        }
-
-        .api-key-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-        }
-
-        footer {
+        /* No Data States */
+        .no-data {
             text-align: center;
-            padding: 12px;
-            color: #94a3b8;
-            font-size: 0.8rem;
-            margin-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
         }
 
+        /* Price Percent Buttons */
+        .percent-buttons {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .percent-btn {
+            flex: 1;
+            padding: 4px;
+            font-size: 11px;
+            background: rgba(0, 163, 255, 0.1);
+            border: 1px solid rgba(0, 163, 255, 0.3);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .percent-btn:hover {
+            background: rgba(0, 163, 255, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        .scrollable-content::-webkit-scrollbar,
+        .log-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .scrollable-content::-webkit-scrollbar-track,
+        .log-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .scrollable-content::-webkit-scrollbar-thumb,
+        .log-scroll::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+            opacity: 0.5;
+        }
+
+        .scrollable-content::-webkit-scrollbar-thumb:hover,
+        .log-scroll::-webkit-scrollbar-thumb:hover {
+            opacity: 0.8;
+        }
+
+        .scrollable-content,
+        .log-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) rgba(255, 255, 255, 0.05);
+        }
+
+        /* Page Scrollbar */
+        body::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: var(--primary-dark);
+            border-radius: 6px;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Responsive */
         @media (max-width: 1200px) {
             .main-content {
-                flex-wrap: wrap;
-                height: auto;
+                flex-direction: column;
             }
             
-            .panel {
-                min-width: 100%;
-                height: 500px;
+            .left-panel, .right-panel {
+                width: 100%;
+            }
+            
+            .header-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .exchange-selector {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .order-type-selector {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 10px;
+            .container {
+                padding: 12px;
             }
             
-            .controls {
-                padding: 10px;
+            .header {
+                padding: 16px 20px;
             }
             
-            .btn {
-                padding: 8px 12px;
-                font-size: 0.85rem;
+            .header-top {
+                flex-direction: column;
+                gap: 15px;
             }
             
-            .select-container {
-                min-width: 100%;
+            .form-row,
+            .btn-group,
+            .exchange-selector {
+                grid-template-columns: 1fr;
             }
             
-            .main-content {
-                gap: 12px;
+            .order-type-selector {
+                grid-template-columns: 1fr;
             }
             
-            .panel {
-                height: 450px;
+            .settings-panel {
+                width: 100%;
+                right: -100%;
             }
-        }
-
-        .no-images {
-            color: #94a3b8;
-            font-style: italic;
-            text-align: center;
-            padding: 8px;
-            font-size: 0.85rem;
-            background: #f1f5f9;
-            border-radius: 6px;
-            margin: 8px 0;
-        }
-
-        .chat-status {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            text-align: center;
-            background: #fef3c7;
-            color: #92400e;
-            border-radius: 4px;
-            margin: 5px 15px;
-            border: 1px solid #fbbf24;
-        }
-
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 8px 15px;
-            align-self: flex-start;
-        }
-
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            background: #94a3b8;
-            border-radius: 50%;
-            animation: typing 1.4s infinite ease-in-out;
-        }
-
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
+            
+            .linked-inputs {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-stats {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1><i class="fas fa-book-reader"></i> Постраничный Переводчик Книг</h1>
-            <p class="subtitle">Читайте PDF, DOCX, EPUB с изображениями и используйте локальный чат для перевода</p>
-        </header>
-
-        <div class="controls">
-            <div class="file-upload">
-                <button class="btn" id="uploadBtn">
-                    <i class="fas fa-file-upload"></i> Загрузить книгу
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <div class="header-title">
+                    <h1><i class="fas fa-chart-line"></i> Multi Exchange Trading Simulator</h1>
+                    <p>Реальная торговля с ценами с различных бирж</p>
+                </div>
+                
+                <div class="header-price-info">
+                    <div class="symbol" id="header-symbol">BTC/USDT</div>
+                    <div class="price" id="header-price">$0.00</div>
+                    <div class="change" id="header-change">0.00%</div>
+                    <div class="connection-status" style="margin-top: 5px;">
+                        <span class="status-dot" id="status-dot"></span>
+                        <span id="status-text">Загрузка...</span>
+                    </div>
+                </div>
+                
+                <button class="settings-toggle" id="settings-toggle">
+                    <i class="fas fa-cog"></i> Настройки
                 </button>
-                <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx">
             </div>
             
-            <div class="select-container">
-                <label for="languageSelect"><i class="fas fa-language"></i> Язык оригинала</label>
-                <select id="languageSelect">
-                    <option value="auto">Автоопределение</option>
-                    <option value="en">Английский</option>
-                    <option value="de">Немецкий</option>
-                    <option value="fr">Французский</option>
-                    <option value="es">Испанский</option>
-                    <option value="it">Итальянский</option>
-                    <option value="ru">Русский</option>
-                </select>
+            <div class="exchange-selector" id="exchange-selector">
+                <!-- Exchange buttons will be added here -->
             </div>
             
-            <div class="select-container">
-                <label><i class="fas fa-eye"></i> Режим изображений</label>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-secondary" id="showTextBtn">
-                        <i class="fas fa-font"></i> Текст
-                    </button>
-                    <button class="btn btn-success" id="showImagesBtn">
-                        <i class="fas fa-images"></i> Картинки
-                    </button>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="label">Баланс USDT</div>
+                    <div class="value" id="header-balance-usdt">10,000.00</div>
+                    <div class="sub-value">Начальный: 10,000</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="label" id="header-crypto-label">Баланс BTC</div>
+                    <div class="value" id="header-balance-crypto">0.000000</div>
+                    <div class="sub-value" id="header-crypto-value">≈ $0.00</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="label">Общая стоимость</div>
+                    <div class="value" id="header-total-value">$10,000.00</div>
+                    <div class="sub-value" id="header-total-change">+0.00%</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="label">Обновлено</div>
+                    <div class="value" id="header-updated">-</div>
+                    <div class="sub-value" id="header-api-source">Загрузка...</div>
                 </div>
             </div>
-            
-            <button class="btn btn-warning" id="testApiBtn">
-                <i class="fas fa-plug"></i> Проверить API
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel - Orders & Log -->
+            <div class="left-panel">
+                <!-- Active Orders -->
+                <div class="card active-orders-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-list-alt"></i> Активные ордера
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            Кол-во: <span id="active-orders-count">0</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="scrollable-content">
+                            <table class="orders-table">
+                                <thead>
+                                    <tr>
+                                        <th>Тип</th>
+                                        <th>Напр.</th>
+                                        <th>Цена</th>
+                                        <th>Кол-во</th>
+                                        <th>Сумма</th>
+                                        <th>Комиссия</th>
+                                        <th>Статус</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="active-orders-table">
+                                    <tr>
+                                        <td colspan="8" class="no-data">Нет активных ордеров</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order History -->
+                <div class="card history-orders-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-history"></i> История ордеров
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            <span id="history-orders-count">0</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="scrollable-content">
+                            <table class="orders-table">
+                                <thead>
+                                    <tr>
+                                        <th>Тип</th>
+                                        <th>Напр.</th>
+                                        <th>Цена</th>
+                                        <th>Кол-во</th>
+                                        <th>Сумма</th>
+                                        <th>Комиссия</th>
+                                        <th>Статус</th>
+                                        <th>Время</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="order-history-table">
+                                    <tr>
+                                        <td colspan="8" class="no-data">История ордеров пуста</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Execution Log -->
+                <div class="card log-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-terminal"></i> Лог исполнения
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-scroll" id="execution-log">
+                            <div class="log-item">
+                                <div class="log-time">--:--:--</div>
+                                <div class="log-message info">Система запущена. Загрузка доступных бирж...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Trading -->
+            <div class="right-panel">
+                <!-- Trading Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-trade"></i> Торговля
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="scrollable-content">
+                            <div class="symbol-input-group">
+                                <div class="symbol-search-container" style="flex: 1;">
+                                    <input type="text" class="form-control" id="symbol-input" placeholder="BTCUSDT" value="BTCUSDT">
+                                    <div class="symbol-search-results" id="symbol-search-results">
+                                        <!-- Search results will appear here -->
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" id="update-symbol-btn">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                            </div>
+
+                            <div class="order-type-selector">
+                                <div class="order-type-btn active" data-type="market">
+                                    Рыночный
+                                </div>
+                                <div class="order-type-btn" data-type="limit">
+                                    Лимитный
+                                </div>
+                                <div class="order-type-btn" data-type="stop_limit">
+                                    Стоп-Лимит
+                                </div>
+                                <div class="order-type-btn" data-type="oco">
+                                    OCO
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-label">Направление</div>
+                                <select class="form-control" id="order-side">
+                                    <option value="BUY">Купить (BUY)</option>
+                                    <option value="SELL">Продать (SELL)</option>
+                                </select>
+                            </div>
+
+                            <!-- Market Order Fields -->
+                            <div id="market-order-fields">
+                                <div class="form-group">
+                                    <div class="form-label" id="market-label">Количество</div>
+                                    <div class="available-amount">
+                                        <span>Доступно: <span id="market-available">0.000000 BTC</span></span>
+                                        <span style="color: var(--text-secondary); font-size: 10px;">Комиссия тейкер: 0.0500%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Limit Order Fields -->
+                            <div id="limit-order-fields" style="display: none;">
+                                <div class="form-group">
+                                    <div class="form-label">Цена (USDT)</div>
+                                    <input type="number" class="form-control" id="limit-price" step="0.00000001" placeholder="0.00">
+                                    <div class="available-amount">
+                                        <span>Текущая: $<span id="current-price">0.00</span></span>
+                                        <span style="color: var(--text-secondary); font-size: 10px;">Комиссия мейкер: 0.0000%</span>
+                                    </div>
+                                    <div class="percent-buttons">
+                                        <button class="percent-btn" data-percent="-5">-5%</button>
+                                        <button class="percent-btn" data-percent="-2">-2%</button>
+                                        <button class="percent-btn" data-percent="+2">+2%</button>
+                                        <button class="percent-btn" data-percent="+5">+5%</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stop Limit Fields -->
+                            <div id="stop-limit-fields" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <div class="form-label">Стоп цена</div>
+                                        <input type="number" class="form-control" id="stop-price" step="0.00000001" placeholder="0.00">
+                                        <div class="percent-buttons">
+                                            <button class="percent-btn" data-percent="-5">-5%</button>
+                                            <button class="percent-btn" data-percent="-2">-2%</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="form-label">Лимит цена</div>
+                                        <input type="number" class="form-control" id="stop-limit-price" step="0.00000001" placeholder="0.00">
+                                        <div class="percent-buttons">
+                                            <button class="percent-btn" data-percent="+2">+2%</button>
+                                            <button class="percent-btn" data-percent="+5">+5%</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="available-amount" style="margin-top: -8px;">
+                                    <span>Текущая: $<span id="current-price-2">0.00</span></span>
+                                    <span style="color: var(--text-secondary); font-size: 10px;">Комиссия мейкер: 0.0000%</span>
+                                </div>
+                            </div>
+
+                            <!-- OCO Fields -->
+                            <div id="oco-fields" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <div class="form-label">Стоп цена</div>
+                                        <input type="number" class="form-control" id="oco-stop-price" step="0.00000001" placeholder="0.00">
+                                        <div class="percent-buttons">
+                                            <button class="percent-btn" data-percent="-5">-5%</button>
+                                            <button class="percent-btn" data-percent="-2">-2%</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="form-label">Лимит цена</div>
+                                        <input type="number" class="form-control" id="oco-stop-limit-price" step="0.00000001" placeholder="0.00">
+                                        <div class="percent-buttons">
+                                            <button class="percent-btn" data-percent="+2">+2%</button>
+                                            <button class="percent-btn" data-percent="+5">+5%</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="oco-section">
+                                    <div class="oco-title">
+                                        <i class="fas fa-bullseye"></i> Целевой ордер
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="form-label">Цена цели</div>
+                                        <input type="number" class="form-control" id="oco-limit-price" step="0.00000001" placeholder="0.00">
+                                        <div class="percent-buttons">
+                                            <button class="percent-btn" data-percent="+2">+2%</button>
+                                            <button class="percent-btn" data-percent="+5">+5%</button>
+                                            <button class="percent-btn" data-percent="+10">+10%</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="available-amount" style="margin-top: -8px;">
+                                    <span>Текущая: $<span id="current-price-3">0.00</span></span>
+                                    <span style="color: var(--text-secondary); font-size: 10px;">Комиссия мейкер: 0.0000%</span>
+                                </div>
+                            </div>
+
+                            <!-- Buy Controls -->
+                            <div id="buy-controls">
+                                <div class="form-group">
+                                    <div class="form-label">Сумма (USDT)</div>
+                                    <div class="linked-inputs">
+                                        <div class="linked-input-group">
+                                            <input type="number" class="form-control" id="buy-amount" step="0.01" placeholder="0.00">
+                                            <div class="amount-controls">
+                                                <button class="amount-btn" data-percent="25">25%</button>
+                                                <button class="amount-btn" data-percent="50">50%</button>
+                                                <button class="amount-btn" data-percent="100">100%</button>
+                                            </div>
+                                        </div>
+                                        <div class="linked-input-group">
+                                            <div class="linked-input-label">Количество</div>
+                                            <input type="number" class="form-control" id="buy-quantity" step="0.00000001" placeholder="0.00" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="slider-container">
+                                        <input type="range" class="slider" id="buy-slider" min="0" max="100" value="0">
+                                        <div class="slider-labels">
+                                            <span>0%</span>
+                                            <span>100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sell Controls -->
+                            <div id="sell-controls" style="display: none;">
+                                <div class="form-group">
+                                    <div class="form-label">Количество</div>
+                                    <div class="linked-inputs">
+                                        <div class="linked-input-group">
+                                            <input type="number" class="form-control" id="sell-quantity" step="0.00000001" placeholder="0.00">
+                                            <div class="amount-controls">
+                                                <button class="amount-btn" data-percent="25">25%</button>
+                                                <button class="amount-btn" data-percent="50">50%</button>
+                                                <button class="amount-btn active" data-percent="100">100%</button>
+                                            </div>
+                                        </div>
+                                        <div class="linked-input-group">
+                                            <div class="linked-input-label">Сумма (USDT)</div>
+                                            <input type="number" class="form-control" id="sell-amount" step="0.01" placeholder="0.00" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="slider-container">
+                                        <input type="range" class="slider" id="sell-slider" min="0" max="100" value="100">
+                                        <div class="slider-labels">
+                                            <span>0%</span>
+                                            <span>100%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-label">Итого</div>
+                                <div class="total-cost">
+                                    <span>Стоимость:</span>
+                                    <span id="total-cost">0.00 USDT</span>
+                                </div>
+                                <div class="commission-display">
+                                    <span>Комиссия:</span>
+                                    <span id="commission-amount">0.00 USDT</span>
+                                </div>
+                            </div>
+
+                            <div class="btn-group">
+                                <button class="btn btn-success" id="place-order-btn">
+                                    <i class="fas fa-plus-circle"></i> Выставить ордер
+                                </button>
+                                <button class="btn btn-danger" id="cancel-all-btn">
+                                    <i class="fas fa-times-circle"></i> Отменить все
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay for settings -->
+    <div class="settings-overlay" id="settings-overlay"></div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settings-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="card-title">
+                <i class="fas fa-cog"></i> Настройки
+            </div>
+            <button class="btn" onclick="closeSettings()" style="background: none; color: var(--text-secondary); padding: 6px;">
+                <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <div class="main-content">
-            <!-- Левая панель: Книга с изображениями -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2 class="panel-title"><i class="fas fa-book-open"></i> Книга</h2>
-                    <div class="page-info" id="pageInfo">Страница: - / -</div>
-                </div>
-                <div class="content-area" id="bookContent">
-                    <div style="text-align: center; padding: 40px; color: #64748b;">
-                        <i class="fas fa-book fa-3x" style="margin-bottom: 15px; color: #3b82f6;"></i>
-                        <h3 style="color: #334155; margin-bottom: 10px;">Загрузите книгу</h3>
-                        <p>Поддерживаются PDF и DOCX файлы с изображениями</p>
-                    </div>
-                </div>
-                <div class="page-controls">
-                    <button class="btn btn-secondary" id="prevPage">
-                        <i class="fas fa-chevron-left"></i> Назад
-                    </button>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-chat" id="sendToChatBtn">
-                            <i class="fas fa-comment"></i> В чат
-                        </button>
-                        <button class="btn btn-success" id="autoTranslateBtn">
-                            <i class="fas fa-language"></i> Перевести
-                        </button>
-                    </div>
-                    <button class="btn btn-secondary" id="nextPage">
-                        Вперед <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-                <div class="translation-status" id="bookStatus">
-                    <i class="fas fa-info-circle"></i> Готов к загрузке
-                </div>
-            </div>
+        <div class="form-group">
+            <div class="form-label">Начальный баланс USDT</div>
+            <input type="number" class="form-control" id="initial-usdt" step="0.01" value="10000">
+        </div>
 
-            <!-- Правая панель: Локальный чат для перевода -->
-            <div class="panel">
-                <div class="panel-header">
-                    <h2 class="panel-title"><i class="fas fa-robot"></i> Переводчик</h2>
-                    <div class="page-info" id="chatStatus">Локальный чат</div>
-                </div>
-                
-                <div class="chat-container">
-                    <div class="chat-header">
-                        <div class="chat-title">
-                            <i class="fas fa-comments"></i> DeepSeek Переводчик
-                        </div>
-                    </div>
-                    
-                    <div class="chat-settings">
-                        <input type="text" id="apiKeyInput" class="api-key-input" 
-                               placeholder="API ключ DeepSeek (необязательно)">
-                        <button class="btn btn-secondary" id="saveApiKeyBtn">
-                            <i class="fas fa-save"></i> Сохранить
-                        </button>
-                    </div>
-                    
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="message message-system">
-                            <strong>Добро пожаловать в переводчик книг!</strong><br>
-                            Загрузите книгу слева, затем нажмите "В чат" чтобы отправить текст для перевода.
-                        </div>
-                        <div class="message message-assistant">
-                            Я помогу вам перевести текст с любого языка на русский. Просто отправьте мне текст страницы книги.
-                        </div>
-                    </div>
-                    
-                    <div class="chat-input-area">
-                        <textarea class="chat-input" id="chatInput" 
-                                  placeholder="Введите сообщение или используйте кнопки для перевода..."></textarea>
-                        <button class="send-btn" id="sendMessageBtn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="quick-actions" style="margin-top: 10px; padding: 0 5px;">
-                    <button class="action-btn" data-prompt="Переведи этот текст на русский язык:">
-                        <i class="fas fa-language"></i> Перевод
-                    </button>
-                    <button class="action-btn" data-prompt="Сделай литературный перевод:">
-                        <i class="fas fa-book"></i> Литературный
-                    </button>
-                    <button class="action-btn" data-prompt="Переведи технический текст:">
-                        <i class="fas fa-flask"></i> Технический
-                    </button>
-                    <button class="action-btn" id="clearChatBtn">
-                        <i class="fas fa-trash"></i> Очистить
-                    </button>
-                    <button class="action-btn" id="copyChatBtn">
-                        <i class="fas fa-copy"></i> Копировать
-                    </button>
-                </div>
+        <div class="form-group">
+            <div class="form-label">Баланс криптовалюты</div>
+            <div class="form-row">
+                <input type="text" class="form-control" id="crypto-symbol" placeholder="BTC" value="BTC">
+                <input type="number" class="form-control" id="initial-crypto" step="0.00000001" value="0">
             </div>
         </div>
 
-        <!-- Модальное окно для полноэкранного просмотра изображений -->
-        <div class="fullscreen-image" id="fullscreenImage">
-            <button class="close-fullscreen" id="closeFullscreen">&times;</button>
-            <img id="fullscreenImg" src="" alt="Изображение в полном размере">
-            <div class="image-counter-fullscreen" id="imageCounterFullscreen"></div>
+        <div class="form-group">
+            <div class="form-label">Комиссия мейкер (%)</div>
+            <input type="number" class="form-control" id="maker-fee" step="0.0001" min="0" max="1" value="0.0000">
         </div>
 
-        <div class="instructions">
-            <h3><i class="fas fa-graduation-cap"></i> Как использовать переводчик:</h3>
-            <ol>
-                <li><strong>Загрузите книгу</strong> - PDF или DOCX файл (EPUB временно не поддерживается)</li>
-                <li><strong>Листайте страницы</strong> - используйте кнопки навигации</li>
-                <li><strong>Работайте с изображениями</strong> - переключайтесь между режимами "Текст" и "Картинки"</li>
-                <li><strong>Используйте чат для перевода</strong>:
-                    <ul style="margin-top: 5px; margin-left: 20px; font-size: 0.85rem;">
-                        <li>Нажмите "В чат" чтобы отправить текст страницы</li>
-                        <li>Используйте быстрые кнопки для разных типов перевода</li>
-                        <li>Введите API ключ DeepSeek для использования реального AI</li>
-                        <li>Без API ключа используется эмуляция перевода</li>
-                    </ul>
-                </li>
-                <li><strong>Сохраняйте результаты</strong> - копируйте переведенный текст из чата</li>
-            </ol>
-            <div class="chat-status" style="margin-top: 10px;">
-                <i class="fas fa-info-circle"></i> Без API ключа перевод эмулируется. Для реального AI перевода получите ключ на <a href="https://platform.deepseek.com/api_keys" style="color: #2563eb; text-decoration: underline;" target="_blank">platform.deepseek.com</a>
+        <div class="form-group">
+            <div class="form-label">Комиссия тейкер (%)</div>
+            <input type="number" class="form-control" id="taker-fee" step="0.0001" min="0" max="1" value="0.0500">
+        </div>
+
+        <div class="form-group">
+            <div class="form-label">Интервал обновления цен (мс)</div>
+            <input type="number" class="form-control" id="price-interval" step="100" min="1000" max="10000" value="2000">
+        </div>
+
+        <button class="btn btn-primary" id="save-balance-btn" style="width: 100%; margin-bottom: 20px;">
+            <i class="fas fa-save"></i> Сохранить настройки
+        </button>
+
+        <div style="margin-bottom: 20px;">
+            <div class="card-title" style="margin-bottom: 12px;">
+                <i class="fas fa-trash"></i> Управление данными
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-warning" id="reset-balance-btn">
+                    Сбросить баланс
+                </button>
+                <button class="btn btn-danger" id="clear-data-btn">
+                    Очистить все
+                </button>
             </div>
         </div>
 
-        <footer>
-            <p>Постраничный Переводчик Книг с локальным чатом &copy; 2023</p>
-            <p>Работает полностью в браузере, без внешних зависимостей</p>
-        </footer>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+            <p><strong>Источники цен:</strong></p>
+            <p>• Binance - основной источник</p>
+            <p>• Bybit - резервный источник</p>
+            <p>• Kraken - дополнительный источник</p>
+            <p>• MEXC - альтернативный источник</p>
+            <p style="margin-top: 10px;"><strong>Комиссии:</strong></p>
+            <p>• Мейкер: 0.0000% (лимитные ордера)</p>
+            <p>• Тейкер: 0.0500% (рыночные ордера)</p>
+        </div>
     </div>
 
     <script>
-        // Глобальные переменные
-        let currentBook = null;
-        let currentPage = 1;
-        let totalPages = 0;
-        let bookContent = [];
-        let bookImages = [];
-        let showImagesMode = true;
-        let apiKey = '';
-        let chatHistory = [];
+        // ========== CONFIGURATION ==========
+        const CONFIG = {
+            updateInterval: 2000,
+            maxOrders: 100,
+            maxHistory: 500,
+            initialBalance: {
+                USDT: 10000,
+                BTC: 0
+            },
+            fees: {
+                maker: 0.0000, // 0.00%
+                taker: 0.0500  // 0.05%
+            }
+        };
 
-        // Элементы DOM
-        const fileInput = document.getElementById('fileInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const bookContentArea = document.getElementById('bookContent');
-        const pageInfo = document.getElementById('pageInfo');
-        const bookStatus = document.getElementById('bookStatus');
-        const prevPageBtn = document.getElementById('prevPage');
-        const nextPageBtn = document.getElementById('nextPage');
-        const sendToChatBtn = document.getElementById('sendToChatBtn');
-        const autoTranslateBtn = document.getElementById('autoTranslateBtn');
-        const showTextBtn = document.getElementById('showTextBtn');
-        const showImagesBtn = document.getElementById('showImagesBtn');
-        const testApiBtn = document.getElementById('testApiBtn');
-        
-        // Чат элементы
-        const chatMessages = document.getElementById('chatMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendMessageBtn = document.getElementById('sendMessageBtn');
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-        const clearChatBtn = document.getElementById('clearChatBtn');
-        const copyChatBtn = document.getElementById('copyChatBtn');
-        const actionButtons = document.querySelectorAll('.action-btn');
-        
-        // Изображения
-        const fullscreenImage = document.getElementById('fullscreenImage');
-        const closeFullscreen = document.getElementById('closeFullscreen');
-        const fullscreenImg = document.getElementById('fullscreenImg');
-        const imageCounterFullscreen = document.getElementById('imageCounterFullscreen');
-
-        // Инициализация
-        window.addEventListener('load', () => {
-            setupEventListeners();
-            loadSavedApiKey();
-            
-            // Добавляем тестовые сообщения в чат
-            addMessage('system', 'Для начала работы загрузите книгу в левой панели.');
-        });
-
-        // Настройка обработчиков событий
-        function setupEventListeners() {
-            // Загрузка файла
-            uploadBtn.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', handleFileUpload);
-            
-            // Навигация по страницам
-            prevPageBtn.addEventListener('click', () => navigatePage(-1));
-            nextPageBtn.addEventListener('click', () => navigatePage(1));
-            
-            // Кнопки перевода
-            sendToChatBtn.addEventListener('click', sendPageToChat);
-            autoTranslateBtn.addEventListener('click', autoTranslatePage);
-            
-            // Управление отображением
-            showTextBtn.addEventListener('click', () => setDisplayMode(false));
-            showImagesBtn.addEventListener('click', () => setDisplayMode(true));
-            
-            // Тестирование API
-            testApiBtn.addEventListener('click', testApiConnection);
-            
-            // Чат
-            sendMessageBtn.addEventListener('click', sendChatMessage);
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendChatMessage();
-                }
-            });
-            
-            saveApiKeyBtn.addEventListener('click', saveApiKey);
-            clearChatBtn.addEventListener('click', clearChat);
-            copyChatBtn.addEventListener('click', copyChatHistory);
-            
-            // Быстрые кнопки действий
-            actionButtons.forEach(btn => {
-                if (btn.id) return; // Пропускаем кнопки с ID
-                btn.addEventListener('click', () => {
-                    const prompt = btn.getAttribute('data-prompt');
-                    if (prompt) {
-                        useQuickPrompt(prompt);
+        // ========== EXCHANGE CONFIGURATIONS ==========
+        const EXCHANGES = {
+            'binance': {
+                name: 'Binance',
+                enabled: true,
+                priority: 1,
+                priceApi: 'https://api.binance.com/api/v3/ticker/price?symbol=',
+                formatSymbol: (symbol) => symbol.toUpperCase(),
+                parsePrice: (data) => {
+                    try {
+                        return data && data.price ? parseFloat(data.price) : null;
+                    } catch {
+                        return null;
                     }
-                });
-            });
-            
-            // Полноэкранный просмотр изображений
-            closeFullscreen.addEventListener('click', closeFullscreenImage);
-            fullscreenImage.addEventListener('click', (e) => {
-                if (e.target === fullscreenImage) {
-                    closeFullscreenImage();
                 }
-            });
-            
-            // Закрытие по ESC
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && fullscreenImage.style.display === 'flex') {
-                    closeFullscreenImage();
+            },
+            'bybit': {
+                name: 'Bybit',
+                enabled: true,
+                priority: 2,
+                priceApi: 'https://api.bybit.com/v5/market/tickers?category=spot&symbol=',
+                formatSymbol: (symbol) => symbol.toUpperCase(),
+                parsePrice: (data) => {
+                    try {
+                        if (data && data.result && data.result.list && data.result.list[0]) {
+                            return parseFloat(data.result.list[0].lastPrice);
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
                 }
-            });
+            },
+            'kraken': {
+                name: 'Kraken',
+                enabled: true,
+                priority: 3,
+                priceApi: 'https://api.kraken.com/0/public/Ticker?pair=',
+                formatSymbol: (symbol) => {
+                    const symbolMap = {
+                        'BTCUSDT': 'XXBTZUSD',
+                        'ETHUSDT': 'XETHZUSD',
+                        'SOLUSDT': 'SOLUSD',
+                        'ADAUSDT': 'ADAUSD',
+                        'DOTUSDT': 'DOTUSD',
+                        'BNBUSDT': 'BNBUSD',
+                        'XRPUSDT': 'XRPUSD',
+                        'DOGEUSDT': 'XDGUSD',
+                        'MATICUSDT': 'MATICUSD',
+                        'AVAXUSDT': 'AVAXUSD'
+                    };
+                    return symbolMap[symbol] || symbol.replace('USDT', 'USD');
+                },
+                parsePrice: (data) => {
+                    try {
+                        if (data && data.result && !data.error?.length) {
+                            const key = Object.keys(data.result)[0];
+                            return data.result[key]?.c?.[0] ? parseFloat(data.result[key].c[0]) : null;
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
+                }
+            },
+            'mexc': {
+                name: 'MEXC',
+                enabled: true,
+                priority: 4,
+                priceApi: 'https://api.mexc.com/api/v3/ticker/price?symbol=',
+                formatSymbol: (symbol) => symbol.toUpperCase(),
+                parsePrice: (data) => {
+                    try {
+                        return data && data.price ? parseFloat(data.price) : null;
+                    } catch {
+                        return null;
+                    }
+                }
+            }
+        };
+
+        // ========== STATE MANAGEMENT ==========
+        const state = {
+            currentSymbol: 'BTCUSDT',
+            currentPrice: 0,
+            lastPrice: 0,
+            orders: [],
+            pendingOrders: [],
+            orderHistory: [],
+            balance: JSON.parse(JSON.stringify(CONFIG.initialBalance)),
+            executionLog: [],
+            initialTotalValue: 10000,
+            sessionStartTime: new Date(),
+            lastUpdateTimestamp: null,
+            priceHistory: [],
+            availableSymbols: [],
+            priceUpdateInterval: null,
+            currentExchange: 'binance',
+            exchangeStatus: {},
+            isUpdatingPrice: false,
+            lastPriceCheck: 0,
+            pricePrecision: 8,
+            fees: { ...CONFIG.fees },
+            totalCommissionPaid: 0
+        };
+
+        // ========== DOM ELEMENTS ==========
+        const elements = {
+            statusDot: document.getElementById('status-dot'),
+            statusText: document.getElementById('status-text'),
+            headerSymbol: document.getElementById('header-symbol'),
+            headerPrice: document.getElementById('header-price'),
+            headerChange: document.getElementById('header-change'),
+            headerBalanceUsdt: document.getElementById('header-balance-usdt'),
+            headerBalanceCrypto: document.getElementById('header-balance-crypto'),
+            headerCryptoLabel: document.getElementById('header-crypto-label'),
+            headerCryptoValue: document.getElementById('header-crypto-value'),
+            headerTotalValue: document.getElementById('header-total-value'),
+            headerTotalChange: document.getElementById('header-total-change'),
+            headerUpdated: document.getElementById('header-updated'),
+            headerApiSource: document.getElementById('header-api-source'),
+            exchangeSelector: document.getElementById('exchange-selector'),
+            symbolInput: document.getElementById('symbol-input'),
+            symbolSearchResults: document.getElementById('symbol-search-results'),
+            updateSymbolBtn: document.getElementById('update-symbol-btn'),
+            orderSide: document.getElementById('order-side'),
+            limitPrice: document.getElementById('limit-price'),
+            stopPrice: document.getElementById('stop-price'),
+            stopLimitPrice: document.getElementById('stop-limit-price'),
+            ocoStopPrice: document.getElementById('oco-stop-price'),
+            ocoStopLimitPrice: document.getElementById('oco-stop-limit-price'),
+            ocoLimitPrice: document.getElementById('oco-limit-price'),
+            buyAmount: document.getElementById('buy-amount'),
+            buyQuantity: document.getElementById('buy-quantity'),
+            buySlider: document.getElementById('buy-slider'),
+            buyControls: document.getElementById('buy-controls'),
+            sellAmount: document.getElementById('sell-amount'),
+            sellQuantity: document.getElementById('sell-quantity'),
+            sellSlider: document.getElementById('sell-slider'),
+            sellControls: document.getElementById('sell-controls'),
+            totalCost: document.getElementById('total-cost'),
+            commissionAmount: document.getElementById('commission-amount'),
+            placeOrderBtn: document.getElementById('place-order-btn'),
+            cancelAllBtn: document.getElementById('cancel-all-btn'),
+            marketOrderFields: document.getElementById('market-order-fields'),
+            limitOrderFields: document.getElementById('limit-order-fields'),
+            stopLimitFields: document.getElementById('stop-limit-fields'),
+            ocoFields: document.getElementById('oco-fields'),
+            orderTypeButtons: document.querySelectorAll('.order-type-btn'),
+            settingsToggle: document.getElementById('settings-toggle'),
+            settingsPanel: document.getElementById('settings-panel'),
+            settingsOverlay: document.getElementById('settings-overlay'),
+            priceIntervalInput: document.getElementById('price-interval'),
+            makerFeeInput: document.getElementById('maker-fee'),
+            takerFeeInput: document.getElementById('taker-fee'),
+            marketLabel: document.getElementById('market-label'),
+            marketAvailable: document.getElementById('market-available'),
+            currentPrice1: document.getElementById('current-price'),
+            currentPrice2: document.getElementById('current-price-2'),
+            currentPrice3: document.getElementById('current-price-3')
+        };
+
+        // ========== COMMISSION CALCULATION ==========
+        function calculateCommission(orderType, amount, isMarket = false) {
+            const feeRate = isMarket ? state.fees.taker : state.fees.maker;
+            const commission = amount * feeRate / 100;
+            return Math.max(commission, 0);
         }
 
-        // Загрузка сохраненного API ключа
-        function loadSavedApiKey() {
-            const savedKey = localStorage.getItem('deepseekApiKey');
-            if (savedKey) {
-                apiKey = savedKey;
-                apiKeyInput.value = savedKey;
-                addMessage('system', 'API ключ загружен из сохраненных данных.');
+        // ========== EXCHANGE MANAGEMENT ==========
+        function updateExchangeStatus(exchangeId, status, message = '') {
+            state.exchangeStatus[exchangeId] = {
+                status: status,
+                message: message,
+                lastChecked: new Date()
+            };
+            
+            const exchangeBtn = document.querySelector(`.exchange-btn[data-exchange="${exchangeId}"]`);
+            if (exchangeBtn) {
+                if (status) {
+                    exchangeBtn.classList.add('working');
+                    exchangeBtn.classList.remove('failed');
+                } else {
+                    exchangeBtn.classList.add('failed');
+                    exchangeBtn.classList.remove('working');
+                }
             }
         }
 
-        // Обработка загрузки файла
-        async function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            resetBook();
-            
-            const fileName = file.name;
-            const fileExt = fileName.split('.').pop().toLowerCase();
-            
-            showStatus(bookStatus, `Загрузка ${fileName}...`, 'info');
-            addMessage('system', `Загружаю книгу: ${fileName}`);
+        async function testExchangeAPI(exchangeId) {
+            const exchange = EXCHANGES[exchangeId];
+            if (!exchange || !exchange.enabled) return false;
             
             try {
-                if (fileExt === 'pdf') {
-                    await loadPDF(file);
-                } else if (fileExt === 'docx') {
-                    await loadDOCX(file);
-                } else {
-                    throw new Error('Поддерживаются только PDF и DOCX файлы');
+                const testSymbol = 'BTCUSDT';
+                const formattedSymbol = exchange.formatSymbol(testSymbol);
+                
+                let testUrl;
+                testUrl = exchange.priceApi + formattedSymbol;
+                
+                // Быстрый таймаут для теста
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch(testUrl, { 
+                    method: 'GET',
+                    headers: { 
+                        'Accept': 'application/json'
+                    },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    updateExchangeStatus(exchangeId, false, `HTTP ${response.status}`);
+                    return false;
                 }
                 
-                showStatus(bookStatus, `"${fileName}" загружена. Страниц: ${totalPages}`, 'success');
-                addMessage('system', `Книга успешно загружена. Всего страниц: ${totalPages}`);
-                updatePage();
+                const data = await response.json();
+                const price = exchange.parsePrice(data);
+                
+                const isValid = price !== null && price > 0;
+                updateExchangeStatus(exchangeId, isValid, isValid ? 'OK' : 'Invalid price');
+                return isValid;
+                
             } catch (error) {
-                showStatus(bookStatus, `Ошибка: ${error.message}`, 'error');
-                addMessage('system', `Ошибка загрузки: ${error.message}`);
-                console.error(error);
+                console.error(`Error testing ${exchangeId}:`, error);
+                updateExchangeStatus(exchangeId, false, error.name === 'AbortError' ? 'Timeout' : 'Error');
+                return false;
             }
         }
 
-        // Загрузка PDF
-        async function loadPDF(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            totalPages = pdf.numPages;
-            currentBook = pdf;
+        async function fetchPriceFromExchange(exchangeId, symbol) {
+            const exchange = EXCHANGES[exchangeId];
+            if (!exchange || !exchange.enabled) return null;
             
-            bookContent = new Array(totalPages).fill('');
-            bookImages = new Array(totalPages).fill([]);
-            
-            // Загружаем первую страницу
-            const page = await pdf.getPage(1);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            bookContent[0] = pageText;
-            
-            // Для остальных страниц ставим заглушки
-            for (let i = 2; i <= totalPages; i++) {
-                bookContent[i-1] = `[Страница ${i} будет загружена при переходе]`;
+            try {
+                const formattedSymbol = exchange.formatSymbol(symbol);
+                let url = exchange.priceApi + formattedSymbol;
+                
+                // Увеличиваем таймаут для стабильности
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 
+                        'Accept': 'application/json'
+                    },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const price = exchange.parsePrice(data);
+                
+                if (price && price > 0) {
+                    return {
+                        price: price,
+                        exchange: exchangeId,
+                        source: exchange.name
+                    };
+                }
+                
+                return null;
+                
+            } catch (error) {
+                console.error(`Error fetching price from ${exchangeId}:`, error);
+                updateExchangeStatus(exchangeId, false, error.name === 'AbortError' ? 'Timeout' : 'Error');
+                return null;
             }
-            
-            addMessage('system', `PDF загружен: ${totalPages} страниц`);
         }
 
-        // Загрузка DOCX
-        async function loadDOCX(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-            const fullText = result.value;
+        async function getPriceForSymbol(symbol) {
+            const sortedExchanges = Object.keys(EXCHANGES)
+                .filter(exchangeId => EXCHANGES[exchangeId].enabled)
+                .sort((a, b) => EXCHANGES[a].priority - EXCHANGES[b].priority);
             
-            // Разбиваем на страницы
-            const pageSize = 2000;
-            bookContent = [];
-            for (let i = 0; i < fullText.length; i += pageSize) {
-                bookContent.push(fullText.substring(i, i + pageSize));
+            // Пробуем каждую биржу по очереди
+            for (const exchangeId of sortedExchanges) {
+                const priceResult = await fetchPriceFromExchange(exchangeId, symbol);
+                if (priceResult) {
+                    state.currentExchange = exchangeId;
+                    return priceResult;
+                }
             }
             
-            totalPages = bookContent.length;
-            bookImages = new Array(totalPages).fill([]);
-            currentBook = { type: 'docx', text: fullText };
-            
-            addMessage('system', `DOCX загружен: ${totalPages} страниц, ${fullText.length} символов`);
+            // Если все биржи недоступны, возвращаем null
+            return null;
         }
 
-        // Навигация по страницам
-        async function navigatePage(direction) {
-            if (currentPage + direction < 1 || currentPage + direction > totalPages) {
+        // ========== PRICE UPDATER ==========
+        async function updatePrice() {
+            if (state.isUpdatingPrice) return;
+            
+            state.isUpdatingPrice = true;
+            try {
+                const now = Date.now();
+                if (now - state.lastPriceCheck < 1000) {
+                    state.isUpdatingPrice = false;
+                    return;
+                }
+                state.lastPriceCheck = now;
+                
+                // Показываем статус подключения
+                elements.statusDot.className = 'status-dot connecting';
+                elements.statusText.textContent = 'Подключение...';
+                elements.statusText.style.color = 'var(--warning)';
+                
+                const priceResult = await getPriceForSymbol(state.currentSymbol);
+                
+                if (priceResult && priceResult.price > 0) {
+                    const oldPrice = state.currentPrice;
+                    state.currentPrice = priceResult.price;
+                    state.lastUpdateTimestamp = new Date();
+                    
+                    // Calculate price change
+                    let changePercent = 0;
+                    if (oldPrice > 0 && state.currentPrice > 0) {
+                        changePercent = ((state.currentPrice - oldPrice) / oldPrice) * 100;
+                    }
+                    
+                    elements.headerChange.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+                    elements.headerChange.className = `change ${changePercent >= 0 ? 'positive' : 'negative'}`;
+                    
+                    elements.headerApiSource.textContent = priceResult.source;
+                    
+                    updateConnectionStatus(true, priceResult.source);
+                    
+                    state.priceHistory.push({
+                        timestamp: new Date(),
+                        price: state.currentPrice,
+                        exchange: priceResult.exchange
+                    });
+                    
+                    if (state.priceHistory.length > 100) {
+                        state.priceHistory = state.priceHistory.slice(-100);
+                    }
+                    
+                    // Update display
+                    updateHeaderDisplay();
+                    updateLinkedAmounts();
+                    updateTotalValue();
+                    
+                    // Update current price displays
+                    const currentPriceStr = formatPrice(state.currentPrice);
+                    elements.currentPrice1.textContent = currentPriceStr;
+                    elements.currentPrice2.textContent = currentPriceStr;
+                    elements.currentPrice3.textContent = currentPriceStr;
+                    
+                    // Check orders
+                    setTimeout(() => {
+                        checkAllOrders();
+                    }, 100);
+                    
+                } else {
+                    // Если цены не получены, сбрасываем в 0
+                    state.currentPrice = 0;
+                    updateConnectionStatus(false, 'Нет соединения');
+                    elements.headerApiSource.textContent = 'Нет данных';
+                    elements.headerChange.textContent = '0.00%';
+                    elements.headerChange.className = 'change';
+                    
+                    // Сбрасываем отображение текущих цен
+                    elements.currentPrice1.textContent = '0.00';
+                    elements.currentPrice2.textContent = '0.00';
+                    elements.currentPrice3.textContent = '0.00';
+                }
+
+            } catch (error) {
+                console.error('Error in updatePrice:', error);
+                // При ошибке сбрасываем цену в 0
+                state.currentPrice = 0;
+                updateConnectionStatus(false, 'Ошибка');
+                elements.headerApiSource.textContent = 'Ошибка';
+                elements.headerChange.textContent = '0.00%';
+                elements.headerChange.className = 'change';
+                
+                // Сбрасываем отображение текущих цен
+                elements.currentPrice1.textContent = '0.00';
+                elements.currentPrice2.textContent = '0.00';
+                elements.currentPrice3.textContent = '0.00';
+                
+                addToLog(`Ошибка получения цены: ${error.message}`, 'error');
+            } finally {
+                state.isUpdatingPrice = false;
+            }
+        }
+
+        function updateConnectionStatus(connected, source = '') {
+            elements.statusDot.className = `status-dot ${connected ? 'connected' : ''}`;
+            elements.statusText.textContent = connected ? `${source} ✓` : 'Нет соединения';
+            elements.statusText.style.color = connected ? 'var(--success)' : 'var(--danger)';
+        }
+
+        function startPriceUpdates() {
+            if (state.priceUpdateInterval) {
+                clearInterval(state.priceUpdateInterval);
+            }
+            
+            const interval = parseInt(elements.priceIntervalInput.value) || CONFIG.updateInterval;
+            
+            updatePrice();
+            
+            state.priceUpdateInterval = setInterval(updatePrice, interval);
+            addToLog(`Обновление цен каждые ${interval}мс`, 'success');
+        }
+
+        // ========== UTILITY FUNCTIONS ==========
+        function comparePrices(price1, price2, precision = state.pricePrecision) {
+            const normalized1 = Math.round(price1 * Math.pow(10, precision)) / Math.pow(10, precision);
+            const normalized2 = Math.round(price2 * Math.pow(10, precision)) / Math.pow(10, precision);
+            return normalized1 === normalized2;
+        }
+
+        function comparePricesGreaterOrEqual(price1, price2, precision = state.pricePrecision) {
+            const normalized1 = Math.round(price1 * Math.pow(10, precision)) / Math.pow(10, precision);
+            const normalized2 = Math.round(price2 * Math.pow(10, precision)) / Math.pow(10, precision);
+            return normalized1 >= normalized2;
+        }
+
+        function comparePricesLessOrEqual(price1, price2, precision = state.pricePrecision) {
+            const normalized1 = Math.round(price1 * Math.pow(10, precision)) / Math.pow(10, precision);
+            const normalized2 = Math.round(price2 * Math.pow(10, precision)) / Math.pow(10, precision);
+            return normalized1 <= normalized2;
+        }
+
+        function generateOrderId() {
+            return 'ORD' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3).toUpperCase();
+        }
+
+        function formatPrice(price) {
+            if (price === 0 || isNaN(price)) return '0.00';
+            if (price < 0.0001) return price.toFixed(8);
+            if (price < 0.001) return price.toFixed(7);
+            if (price < 0.01) return price.toFixed(6);
+            if (price < 0.1) return price.toFixed(5);
+            if (price < 1) return price.toFixed(4);
+            if (price < 10) return price.toFixed(3);
+            if (price < 100) return price.toFixed(2);
+            if (price < 1000) return price.toFixed(1);
+            return price.toFixed(0);
+        }
+
+        function formatInputPrice(price) {
+            if (price === 0 || isNaN(price)) return '';
+            return price.toFixed(8);
+        }
+
+        function formatAmount(amount) {
+            if (amount === 0 || isNaN(amount)) return '0.00';
+            if (amount < 0.01) return amount.toFixed(6);
+            if (amount < 1) return amount.toFixed(4);
+            if (amount < 100) return amount.toFixed(2);
+            if (amount < 1000) return amount.toFixed(1);
+            return amount.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        }
+
+        function formatQuantity(quantity) {
+            if (quantity === 0 || isNaN(quantity)) return '0.000000';
+            if (quantity < 0.000001) return quantity.toFixed(8);
+            if (quantity < 0.00001) return quantity.toFixed(7);
+            if (quantity < 0.0001) return quantity.toFixed(6);
+            if (quantity < 0.001) return quantity.toFixed(5);
+            if (quantity < 0.01) return quantity.toFixed(4);
+            if (quantity < 0.1) return quantity.toFixed(3);
+            if (quantity < 1) return quantity.toFixed(2);
+            if (quantity < 10) return quantity.toFixed(1);
+            return quantity.toFixed(0);
+        }
+
+        function getBaseSymbol(symbol) {
+            if (symbol.endsWith('USDT')) return symbol.slice(0, -4);
+            if (symbol.endsWith('BTC')) return symbol.slice(0, -3);
+            if (symbol.endsWith('ETH')) return symbol.slice(0, -3);
+            return symbol;
+        }
+
+        function addToLog(message, type = 'info') {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ru-RU', {hour12: false});
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-item';
+            logEntry.innerHTML = `
+                <div class="log-time">${timeStr}</div>
+                <div class="log-message ${type}">${message}</div>
+            `;
+            
+            document.getElementById('execution-log').prepend(logEntry);
+            
+            const entries = document.getElementById('execution-log').querySelectorAll('.log-item');
+            if (entries.length > 20) {
+                entries[entries.length - 1].remove();
+            }
+        }
+
+        // ========== ORDER LOGIC FUNCTIONS ==========
+        function checkAllOrders() {
+            if (state.currentPrice <= 0) return;
+            
+            checkStopOrdersActivation();
+            checkLimitOrdersExecution();
+            checkOCOOrders();
+            updateOrdersDisplay();
+        }
+
+        function checkStopOrdersActivation() {
+            for (let i = state.pendingOrders.length - 1; i >= 0; i--) {
+                const order = state.pendingOrders[i];
+                
+                if (order.status === 'PENDING' && order.type === 'STOP_LIMIT') {
+                    let shouldActivate = false;
+                    
+                    if (order.side === 'BUY') {
+                        shouldActivate = comparePricesGreaterOrEqual(state.currentPrice, order.triggerPrice);
+                    } else {
+                        shouldActivate = comparePricesLessOrEqual(state.currentPrice, order.triggerPrice);
+                    }
+                    
+                    if (shouldActivate && !order.activated) {
+                        order.status = 'ACTIVE';
+                        order.activated = true;
+                        order.activatedAt = new Date();
+                        
+                        state.orders.push(order);
+                        state.pendingOrders.splice(i, 1);
+                        
+                        addToLog(`Стоп-лимит ${order.id} активирован: цена $${formatPrice(state.currentPrice)} достигла триггера $${formatPrice(order.triggerPrice)}`, 'warning');
+                    }
+                }
+            }
+        }
+
+        function checkLimitOrdersExecution() {
+            for (let i = state.orders.length - 1; i >= 0; i--) {
+                const order = state.orders[i];
+                
+                if (order.status === 'ACTIVE') {
+                    let shouldExecute = false;
+                    
+                    if (order.type === 'LIMIT' || (order.type === 'STOP_LIMIT' && order.activated)) {
+                        if (order.side === 'BUY') {
+                            shouldExecute = comparePricesLessOrEqual(state.currentPrice, order.limitPrice);
+                        } else {
+                            shouldExecute = comparePricesGreaterOrEqual(state.currentPrice, order.limitPrice);
+                        }
+                    }
+                    
+                    if (shouldExecute) {
+                        executeOrder(order, order.limitPrice, false); // Лимитный ордер - мейкер комиссия
+                        state.orders.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        function checkOCOOrders() {
+            for (let i = state.pendingOrders.length - 1; i >= 0; i--) {
+                const ocoOrder = state.pendingOrders[i];
+                
+                if (ocoOrder.status === 'PENDING' && ocoOrder.type === 'OCO') {
+                    
+                    const takeProfitOrder = state.orders.find(o => o.ocoGroupId === ocoOrder.id && o.isTakeProfit);
+                    
+                    if (!takeProfitOrder) continue;
+                    
+                    let stopLossTriggered = false;
+                    let takeProfitTriggered = false;
+                    
+                    if (ocoOrder.side === 'SELL') {
+                        takeProfitTriggered = comparePricesGreaterOrEqual(state.currentPrice, takeProfitOrder.limitPrice);
+                        stopLossTriggered = comparePricesLessOrEqual(state.currentPrice, ocoOrder.triggerPrice);
+                        
+                    } else {
+                        takeProfitTriggered = comparePricesLessOrEqual(state.currentPrice, takeProfitOrder.limitPrice);
+                        stopLossTriggered = comparePricesGreaterOrEqual(state.currentPrice, ocoOrder.triggerPrice);
+                    }
+                    
+                    // Если сработал СТОП-ЛОСС
+                    if (stopLossTriggered && !ocoOrder.stopActivated) {
+                        ocoOrder.stopActivated = true;
+                        ocoOrder.stopActivatedAt = new Date();
+                        
+                        addToLog(`OCO стоп-лосс активирован: цена $${formatPrice(state.currentPrice)} достигла триггера $${formatPrice(ocoOrder.triggerPrice)}`, 'warning');
+                        
+                        if (takeProfitOrder) {
+                            cancelSingleOrder(takeProfitOrder.id);
+                        }
+                        
+                        ocoOrder.status = 'ACTIVE';
+                        ocoOrder.activated = true;
+                        state.orders.push(ocoOrder);
+                        state.pendingOrders.splice(i, 1);
+                    }
+                    
+                    // Если сработал ТЕЙК-ПРОФИТ
+                    if (takeProfitTriggered && !ocoOrder.targetActivated) {
+                        ocoOrder.targetActivated = true;
+                        ocoOrder.targetActivatedAt = new Date();
+                        
+                        addToLog(`OCO тейк-профит активирован: цена $${formatPrice(state.currentPrice)} достигла цели $${formatPrice(takeProfitOrder.limitPrice)}`, 'success');
+                        
+                        cancelSingleOrder(ocoOrder.id);
+                        
+                        if (takeProfitOrder) {
+                            executeOrder(takeProfitOrder, takeProfitOrder.limitPrice, false); // Лимитный ордер - мейкер комиссия
+                            
+                            const index = state.orders.findIndex(o => o.id === takeProfitOrder.id);
+                            if (index !== -1) {
+                                state.orders.splice(index, 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function executeOrder(order, executionPrice, isMarket = false) {
+            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
+            const commission = calculateCommission(order.type, order.amount, isMarket);
+            state.totalCommissionPaid += commission;
+            
+            if (order.side === 'BUY') {
+                const boughtQuantity = order.quantity;
+                const actualCost = executionPrice * boughtQuantity + commission;
+                
+                state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + boughtQuantity;
+                
+                if (order.amount > actualCost) {
+                    state.balance.USDT += (order.amount - actualCost);
+                }
+                
+                addToLog(`Исполнен BUY: ${formatQuantity(boughtQuantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(actualCost)} (комиссия: $${formatAmount(commission)})`, 'success');
+            } else {
+                const soldAmount = executionPrice * order.quantity - commission;
+                state.balance.USDT += soldAmount;
+                addToLog(`Исполнен SELL: ${formatQuantity(order.quantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(soldAmount)} (комиссия: $${formatAmount(commission)})`, 'success');
+            }
+            
+            order.status = 'FILLED';
+            order.executedAt = new Date();
+            order.executedPrice = executionPrice;
+            order.commission = commission;
+            order.isMarket = isMarket;
+            
+            state.orderHistory.unshift(order);
+            
+            if (state.orderHistory.length > 100) {
+                state.orderHistory = state.orderHistory.slice(0, 100);
+            }
+            
+            updateHeaderDisplay();
+            updateTotalValue();
+            saveToLocalStorage();
+        }
+
+        function executeMarketOrderImmediately(order) {
+            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
+            const executionPrice = state.currentPrice;
+            
+            if (executionPrice <= 0) {
+                addToLog('Ошибка: Нельзя исполнить рыночный ордер без текущей цены', 'error');
                 return;
             }
             
-            currentPage += direction;
-            await updatePage();
+            const commission = calculateCommission('MARKET', order.amount, true);
+            state.totalCommissionPaid += commission;
+            
+            if (order.side === 'BUY') {
+                const boughtQuantity = order.quantity;
+                const actualCost = executionPrice * boughtQuantity + commission;
+                
+                state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + boughtQuantity;
+                
+                if (order.amount > actualCost) {
+                    state.balance.USDT += (order.amount - actualCost);
+                }
+                
+                addToLog(`Рыночный BUY исполнен: ${formatQuantity(boughtQuantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(actualCost)} (комиссия: $${formatAmount(commission)})`, 'success');
+            } else {
+                const soldAmount = executionPrice * order.quantity - commission;
+                state.balance.USDT += soldAmount;
+                addToLog(`Рыночный SELL исполнен: ${formatQuantity(order.quantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(soldAmount)} (комиссия: $${formatAmount(commission)})`, 'success');
+            }
+            
+            order.status = 'FILLED';
+            order.executedAt = new Date();
+            order.executedPrice = executionPrice;
+            order.commission = commission;
+            order.isMarket = true;
+            
+            state.orderHistory.unshift(order);
+            
+            if (state.orderHistory.length > 100) {
+                state.orderHistory = state.orderHistory.slice(0, 100);
+            }
+            
+            updateHeaderDisplay();
+            updateTotalValue();
+            saveToLocalStorage();
         }
 
-        // Обновление отображения страницы
-        async function updatePage() {
-            if (!currentBook || bookContent.length === 0) return;
+        function cancelSingleOrder(orderId) {
+            let order = state.orders.find(o => o.id === orderId);
+            let source = 'orders';
             
-            pageInfo.textContent = `Страница: ${currentPage} / ${totalPages}`;
+            if (!order) {
+                order = state.pendingOrders.find(o => o.id === orderId);
+                source = 'pendingOrders';
+            }
             
-            // Если это PDF и страница еще не загружена
-            if (currentBook._pdfInfo && bookContent[currentPage - 1].includes('будет загружена')) {
-                showStatus(bookStatus, `Загрузка страницы ${currentPage}...`, 'info');
-                try {
-                    const page = await currentBook.getPage(currentPage);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
-                    bookContent[currentPage - 1] = pageText;
-                    showStatus(bookStatus, `Страница ${currentPage} загружена`, 'success');
-                } catch (error) {
-                    showStatus(bookStatus, `Ошибка загрузки страницы`, 'error');
+            if (!order) return false;
+            
+            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
+            
+            if (order.side === 'BUY') {
+                state.balance.USDT += order.amount;
+            } else {
+                state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + order.quantity;
+            }
+            
+            order.status = 'CANCELLED';
+            order.cancelledAt = new Date();
+            
+            state.orderHistory.unshift(order);
+            
+            if (source === 'orders') {
+                state.orders = state.orders.filter(o => o.id !== orderId);
+            } else {
+                state.pendingOrders = state.pendingOrders.filter(o => o.id !== orderId);
+            }
+            
+            addToLog(`Ордер ${orderId} отменен`, 'info');
+            
+            updateHeaderDisplay();
+            updateTotalValue();
+            saveToLocalStorage();
+            updateOrdersDisplay();
+            
+            return true;
+        }
+
+        function cancelOCOGroup(groupId) {
+            const stopLossOrder = state.pendingOrders.find(o => o.ocoGroupId === groupId && o.isStopLoss);
+            const takeProfitOrder = state.orders.find(o => o.ocoGroupId === groupId && o.isTakeProfit);
+            
+            let cancelledCount = 0;
+            
+            if (stopLossOrder && cancelSingleOrder(stopLossOrder.id)) {
+                cancelledCount++;
+            }
+            
+            if (takeProfitOrder && cancelSingleOrder(takeProfitOrder.id)) {
+                cancelledCount++;
+            }
+            
+            if (cancelledCount > 0) {
+                addToLog(`OCO группа ${groupId} отменена (${cancelledCount} ордера)`, 'info');
+                updateOrdersDisplay();
+            }
+        }
+
+        // ========== TRADING FORM FUNCTIONS ==========
+        function placeOrder() {
+            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+            const side = elements.orderSide.value;
+            
+            let quantity, amount;
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
+            const marketPrice = state.currentPrice || 0;
+
+            if (orderType === 'market') {
+                // Для рыночных ордеров используем текущую рыночную цену
+                if (side === 'BUY') {
+                    amount = parseFloat(elements.buyAmount.value) || 0;
+                    if (!amount || amount <= 0) {
+                        addToLog('Ошибка: Введите сумму для покупки', 'error');
+                        return;
+                    }
+                    
+                    if (marketPrice <= 0) {
+                        addToLog('Ошибка: Нет текущей цены для рыночного ордера', 'error');
+                        return;
+                    }
+                    
+                    quantity = amount / marketPrice;
+                } else {
+                    quantity = parseFloat(elements.sellQuantity.value) || 0;
+                    if (!quantity || quantity <= 0) {
+                        addToLog('Ошибка: Введите количество для продажи', 'error');
+                        return;
+                    }
+                    
+                    if (marketPrice <= 0) {
+                        addToLog('Ошибка: Нет текущей цены для рыночного ордера', 'error');
+                        return;
+                    }
+                    
+                    amount = quantity * marketPrice;
+                }
+            } else {
+                // Для лимитных ордеров
+                if (side === 'BUY') {
+                    quantity = parseFloat(elements.buyQuantity.value) || 0;
+                    amount = parseFloat(elements.buyAmount.value) || 0;
+                } else {
+                    quantity = parseFloat(elements.sellQuantity.value) || 0;
+                    amount = parseFloat(elements.sellAmount.value) || 0;
                 }
             }
             
-            const pageText = bookContent[currentPage - 1] || '';
-            const charCount = pageText.length;
-            const wordCount = pageText.split(/\s+/).filter(w => w.length > 0).length;
-            const images = bookImages[currentPage - 1] || [];
+            if (!quantity || quantity <= 0) {
+                addToLog('Ошибка: Введите количество', 'error');
+                return;
+            }
             
-            renderPageContent(pageText, charCount, wordCount, images);
-            
-            prevPageBtn.disabled = currentPage <= 1;
-            nextPageBtn.disabled = currentPage >= totalPages;
-            
-            addMessage('system', `Перешли на страницу ${currentPage}/${totalPages}`);
+            if (!amount || amount <= 0) {
+                addToLog('Ошибка: Введите сумму', 'error');
+                return;
+            }
+
+            if (orderType === 'market') {
+                // Рыночный ордер исполняется сразу
+                const order = {
+                    id: generateOrderId(),
+                    type: 'MARKET',
+                    side: side,
+                    symbol: state.currentSymbol,
+                    baseSymbol: baseSymbol,
+                    limitPrice: marketPrice,
+                    quantity: quantity,
+                    amount: amount,
+                    status: 'ACTIVE',
+                    createdAt: new Date()
+                };
+                
+                if (!checkAndReserveFunds(order)) {
+                    addToLog('Ошибка: Недостаточно средств', 'error');
+                    return;
+                }
+                
+                executeMarketOrderImmediately(order);
+                addToLog(`Рыночный ордер ${order.id} размещен и исполнен`, 'success');
+                
+            } else if (orderType === 'limit') {
+                const price = parseFloat(elements.limitPrice.value) || 0;
+                
+                if (!price || price <= 0) {
+                    addToLog('Ошибка: Введите лимитную цену', 'error');
+                    return;
+                }
+                
+                const order = {
+                    id: generateOrderId(),
+                    type: 'LIMIT',
+                    side: side,
+                    symbol: state.currentSymbol,
+                    baseSymbol: baseSymbol,
+                    limitPrice: price,
+                    quantity: quantity,
+                    amount: amount,
+                    status: 'ACTIVE',
+                    createdAt: new Date()
+                };
+                
+                if (!checkAndReserveFunds(order)) {
+                    addToLog('Ошибка: Недостаточно средств', 'error');
+                    return;
+                }
+                
+                state.orders.push(order);
+                addToLog(`Лимитный ордер ${order.id} размещен: ${side} ${formatQuantity(quantity)} @ $${formatPrice(price)}`, 'success');
+                
+            } else if (orderType === 'stop_limit') {
+                const stopPrice = parseFloat(elements.stopPrice.value);
+                const stopLimitPrice = parseFloat(elements.stopLimitPrice.value);
+                
+                if (!stopPrice || stopPrice <= 0) {
+                    addToLog('Ошибка: Введите стоп цену', 'error');
+                    return;
+                }
+                
+                if (!stopLimitPrice || stopLimitPrice <= 0) {
+                    addToLog('Ошибка: Введите лимит цену', 'error');
+                    return;
+                }
+                
+                if (side === 'BUY') {
+                    if (marketPrice > 0 && stopPrice <= marketPrice) {
+                        addToLog('Предупреждение: Для BUY стоп цена обычно выше текущей', 'warning');
+                    }
+                    if (stopLimitPrice <= stopPrice) {
+                        addToLog('Ошибка: Для BUY лимит цена должна быть выше стоп цены', 'error');
+                        return;
+                    }
+                } else {
+                    if (marketPrice > 0 && stopPrice >= marketPrice) {
+                        addToLog('Предупреждение: Для SELL стоп цена обычно ниже текущей', 'warning');
+                    }
+                    if (stopLimitPrice >= stopPrice) {
+                        addToLog('Ошибка: Для SELL лимит цена должна быть ниже стоп цены', 'error');
+                        return;
+                    }
+                }
+                
+                const order = {
+                    id: generateOrderId(),
+                    type: 'STOP_LIMIT',
+                    side: side,
+                    symbol: state.currentSymbol,
+                    baseSymbol: baseSymbol,
+                    triggerPrice: stopPrice,
+                    limitPrice: stopLimitPrice,
+                    quantity: quantity,
+                    amount: amount,
+                    status: 'PENDING',
+                    createdAt: new Date(),
+                    activated: false
+                };
+                
+                if (!checkAndReserveFunds(order)) {
+                    addToLog('Ошибка: Недостаточно средств', 'error');
+                    return;
+                }
+                
+                state.pendingOrders.push(order);
+                addToLog(`Стоп-лимит ${order.id} размещен: ${side} ${formatQuantity(quantity)}, стоп $${formatPrice(stopPrice)}, лимит $${formatPrice(stopLimitPrice)}`, 'success');
+                
+            } else if (orderType === 'oco') {
+                const stopLossTrigger = parseFloat(elements.ocoStopPrice.value);
+                const stopLossPrice = parseFloat(elements.ocoStopLimitPrice.value);
+                const takeProfitPrice = parseFloat(elements.ocoLimitPrice.value);
+                
+                if (!stopLossTrigger || stopLossTrigger <= 0) {
+                    addToLog('Ошибка: Введите цену триггера стоп-лосса', 'error');
+                    return;
+                }
+                
+                if (!stopLossPrice || stopLossPrice <= 0) {
+                    addToLog('Ошибка: Введите цену исполнения стоп-лосса', 'error');
+                    return;
+                }
+                
+                if (!takeProfitPrice || takeProfitPrice <= 0) {
+                    addToLog('Ошибка: Введите цену тейк-профита', 'error');
+                    return;
+                }
+                
+                if (side === 'SELL') {
+                    if (marketPrice > 0) {
+                        if (takeProfitPrice <= marketPrice) {
+                            addToLog('Предупреждение: Для SELL OCO тейк-профит должен быть ВЫШЕ текущей цены', 'warning');
+                        }
+                        if (stopLossTrigger >= marketPrice) {
+                            addToLog('Предупреждение: Для SELL OCO триггер стоп-лосса должен быть НИЖЕ текущей цены', 'warning');
+                        }
+                    }
+                    
+                    if (stopLossPrice >= stopLossTrigger) {
+                        addToLog('Ошибка: Для SELL OCO цена исполнения стоп-лосса должна быть НИЖЕ триггера', 'error');
+                        return;
+                    }
+                    
+                } else {
+                    if (marketPrice > 0) {
+                        if (takeProfitPrice >= marketPrice) {
+                            addToLog('Предупреждение: Для BUY OCO тейк-профит должен быть НИЖЕ текущей цены', 'warning');
+                        }
+                        if (stopLossTrigger <= marketPrice) {
+                            addToLog('Предупреждение: Для BUY OCO триггер стоп-лосса должен быть ВЫШЕ текущей цены', 'warning');
+                        }
+                    }
+                    
+                    if (stopLossPrice <= stopLossTrigger) {
+                        addToLog('Ошибка: Для BUY OCO цена исполнения стоп-лосса должна быть ВЫШЕ триггера', 'error');
+                        return;
+                    }
+                }
+                
+                const ocoGroupId = generateOrderId();
+                
+                const stopLossOrder = {
+                    id: generateOrderId(),
+                    type: 'OCO',
+                    side: side,
+                    symbol: state.currentSymbol,
+                    baseSymbol: baseSymbol,
+                    triggerPrice: stopLossTrigger,
+                    limitPrice: stopLossPrice,
+                    quantity: quantity,
+                    amount: amount,
+                    status: 'PENDING',
+                    createdAt: new Date(),
+                    activated: false,
+                    isStopLoss: true,
+                    ocoGroupId: ocoGroupId
+                };
+                
+                const takeProfitOrder = {
+                    id: generateOrderId(),
+                    type: 'LIMIT',
+                    side: side,
+                    symbol: state.currentSymbol,
+                    baseSymbol: baseSymbol,
+                    limitPrice: takeProfitPrice,
+                    quantity: quantity,
+                    amount: amount,
+                    status: 'ACTIVE',
+                    createdAt: new Date(),
+                    isTakeProfit: true,
+                    ocoGroupId: ocoGroupId
+                };
+                
+                if (!checkAndReserveFunds(stopLossOrder)) {
+                    addToLog('Ошибка: Недостаточно средств для OCO', 'error');
+                    return;
+                }
+                
+                state.pendingOrders.push(stopLossOrder);
+                state.orders.push(takeProfitOrder);
+                
+                addToLog(`OCO ордер размещен: ${side} ${formatQuantity(quantity)} ${baseSymbol}`, 'success');
+                
+                if (side === 'SELL') {
+                    addToLog(`  Тейк-профит: $${formatPrice(takeProfitPrice)} (продать при росте)`, 'success');
+                    addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
+                    addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (продать при падении)`, 'warning');
+                } else {
+                    addToLog(`  Тейк1-профит: $${formatPrice(takeProfitPrice)} (купить при падении)`, 'success');
+                    addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
+                    addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (купить при росте)`, 'warning');
+                }
+            }
+
+            clearOrderForm();
+            updateOrdersDisplay();
+            updateTotalValue();
+            saveToLocalStorage();
         }
 
-        // Рендеринг содержимого страницы
-        function renderPageContent(text, charCount, wordCount, images) {
-            let contentHTML = `
-                <div class="text-stats">
-                    <span>📄 ${wordCount} слов</span>
-                    <span>🔤 ${charCount} символов</span>
-                    <span>🖼️ ${images.length} изображ.</span>
-                </div>
-                <div style="line-height: 1.7;">
-                    ${formatText(text)}
-                </div>
-            `;
+        function checkAndReserveFunds(order) {
+            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
             
-            if (showImagesMode && images.length > 0) {
-                contentHTML += `<div style="color: #64748b; font-size: 0.85rem; margin: 10px 0; text-align: center;">
-                    📸 Изображения на странице:
-                </div>`;
-                contentHTML += '<div class="image-gallery">';
+            if (order.side === 'BUY') {
+                if (state.balance.USDT >= order.amount) {
+                    state.balance.USDT -= order.amount;
+                    return true;
+                }
+            } else {
+                if (state.balance[baseSymbol] >= order.quantity) {
+                    state.balance[baseSymbol] -= order.quantity;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function clearOrderForm() {
+            elements.limitPrice.value = '';
+            elements.stopPrice.value = '';
+            elements.stopLimitPrice.value = '';
+            elements.ocoStopPrice.value = '';
+            elements.ocoStopLimitPrice.value = '';
+            elements.ocoLimitPrice.value = '';
+            elements.buyAmount.value = '';
+            elements.buyQuantity.value = '';
+            elements.sellQuantity.value = '';
+            elements.sellAmount.value = '';
+            elements.buySlider.value = 0;
+            elements.sellSlider.value = 100;
+            
+            document.querySelectorAll('#buy-controls .amount-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const buy25Btn = document.querySelector('#buy-controls .amount-btn[data-percent="25"]');
+            if (buy25Btn) buy25Btn.classList.add('active');
+            
+            document.querySelectorAll('#sell-controls .amount-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const sell100Btn = document.querySelector('#sell-controls .amount-btn[data-percent="100"]');
+            if (sell100Btn) sell100Btn.classList.add('active');
+            
+            updateTotalCost();
+        }
+
+        function cancelAllOrders() {
+            const allOrders = [...state.orders, ...state.pendingOrders];
+            const activeOrders = allOrders.filter(order => 
+                order.status === 'ACTIVE' || order.status === 'PENDING'
+            );
+            
+            if (activeOrders.length === 0) {
+                addToLog('Нет активных ордеров', 'info');
+                return;
+            }
+            
+            let cancelledCount = 0;
+            activeOrders.forEach(order => {
+                if (cancelSingleOrder(order.id)) {
+                    cancelledCount++;
+                }
+            });
+            
+            addToLog(`Отменено ${cancelledCount} ордеров`, 'info');
+            updateOrdersDisplay();
+        }
+
+        // ========== UI UPDATE FUNCTIONS ==========
+        function updateOrdersDisplay() {
+            const allActiveOrders = [...state.orders, ...state.pendingOrders];
+            
+            document.getElementById('active-orders-count').textContent = allActiveOrders.length;
+            document.getElementById('history-orders-count').textContent = state.orderHistory.length;
+            
+            let activeOrdersHtml = '';
+            if (allActiveOrders.length === 0) {
+                activeOrdersHtml = `<tr><td colspan="8" class="no-data">Нет активных ордеров</td></tr>`;
+            } else {
+                const ocoGroups = new Map();
                 
-                images.forEach((imgSrc, index) => {
-                    if (imgSrc && typeof imgSrc === 'string') {
-                        contentHTML += `
-                            <img src="${imgSrc}" alt="Иллюстрация ${index + 1}" 
-                                 onclick="openFullscreenImage('${imgSrc}', ${index + 1}, ${images.length})"
-                                 title="Нажмите для увеличения">
+                allActiveOrders.forEach(order => {
+                    if (order.ocoGroupId) {
+                        if (!ocoGroups.has(order.ocoGroupId)) {
+                            ocoGroups.set(order.ocoGroupId, []);
+                        }
+                        ocoGroups.get(order.ocoGroupId).push(order);
+                    }
+                });
+                
+                ocoGroups.forEach((orders, groupId) => {
+                    const stopLossOrder = orders.find(o => o.isStopLoss);
+                    const takeProfitOrder = orders.find(o => o.isTakeProfit);
+                    
+                    if (stopLossOrder && takeProfitOrder) {
+                        const sideClass = stopLossOrder.side === 'BUY' ? 'side-buy' : 'side-sell';
+                        const sideText = stopLossOrder.side === 'BUY' ? 'BUY' : 'SELL';
+                        
+                        let statusText = 'Активен';
+                        let statusClass = 'status-active';
+                        
+                        if (stopLossOrder.stopActivated) {
+                            statusText = 'Стоп-лосс активирован';
+                            statusClass = 'status-triggered';
+                        } else if (stopLossOrder.targetActivated) {
+                            statusText = 'Тейк-профит активирован';
+                            statusClass = 'status-triggered';
+                        }
+                        
+                        activeOrdersHtml += `
+                            <tr style="background: rgba(255, 165, 2, 0.05);">
+                                <td><span class="type-badge type-oco">OCO</span></td>
+                                <td><span class="side-badge ${sideClass}">${sideText}</span></td>
+                                <td style="font-size: 11px; line-height: 1.2;">
+                                    <div>Тейк: $${formatPrice(takeProfitOrder.limitPrice)}</div>
+                                    <div>Стоп: $${formatPrice(stopLossOrder.triggerPrice)} → $${formatPrice(stopLossOrder.limitPrice)}</div>
+                                </td>
+                                <td>${formatQuantity(stopLossOrder.quantity)}</td>
+                                <td>$${formatAmount(stopLossOrder.amount)}</td>
+                                <td><span class="commission-badge">${stopLossOrder.isMarket ? 'Тейкер' : 'Мейкер'}</span></td>
+                                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                                <td><button class="action-btn" onclick="cancelOCOGroup('${groupId}')" title="Отменить OCO группу"><i class="fas fa-times"></i></button></td>
+                            </tr>
                         `;
                     }
                 });
                 
-                contentHTML += '</div>';
-            } else if (images.length > 0 && !showImagesMode) {
-                contentHTML += `<div class="no-images">
-                    <i class="fas fa-image"></i> На странице ${images.length} изображений (режим "Текст")
-                </div>`;
-            }
-            
-            bookContentArea.innerHTML = contentHTML;
-        }
-
-        // Форматирование текста
-        function formatText(text) {
-            if (!text || text.trim().length === 0) {
-                return '<div style="text-align: center; padding: 30px; color: #94a3b8;"><i class="fas fa-file-alt fa-2x"></i><p>Текст страницы отсутствует</p></div>';
-            }
-            
-            let formatted = text
-                .replace(/\n\s*\n\s*\n/g, '</p><p style="margin-top: 1.2em;">')
-                .replace(/\n\n/g, '</p><p style="margin-top: 0.8em;">')
-                .replace(/\n/g, '<br>');
-            
-            return `<p>${formatted}</p>`;
-        }
-
-        // Отправка страницы в чат
-        function sendPageToChat() {
-            if (bookContent.length === 0) {
-                showStatus(bookStatus, 'Сначала загрузите книгу', 'error');
-                return;
-            }
-            
-            const pageText = bookContent[currentPage - 1];
-            if (!pageText || pageText.trim().length === 0) {
-                showStatus(bookStatus, 'Текст страницы пуст', 'warning');
-                return;
-            }
-            
-            const textToSend = pageText.length > 1500 ? pageText.substring(0, 1500) + "..." : pageText;
-            
-            addMessage('user', `Текст со страницы ${currentPage}:\n\n${textToSend}`);
-            showStatus(bookStatus, 'Текст отправлен в чат', 'success');
-            
-            // Автоматически запрашиваем перевод
-            setTimeout(() => {
-                chatInput.value = "Переведи этот текст на русский язык:";
-                chatInput.focus();
-            }, 500);
-        }
-
-        // Автоматический перевод страницы
-        async function autoTranslatePage() {
-            if (bookContent.length === 0) {
-                showStatus(bookStatus, 'Сначала загрузите книгу', 'error');
-                return;
-            }
-            
-            const pageText = bookContent[currentPage - 1];
-            if (!pageText || pageText.trim().length === 0) {
-                showStatus(bookStatus, 'Текст страницы пуст', 'warning');
-                return;
-            }
-            
-            const textToSend = pageText.length > 1200 ? pageText.substring(0, 1200) + "..." : pageText;
-            
-            showStatus(bookStatus, 'Начинаю перевод...', 'info');
-            addMessage('user', `Переведи этот текст с страницы ${currentPage} на русский:\n\n${textToSend}`);
-            
-            // Показываем индикатор набора
-            showTypingIndicator();
-            
-            // Имитируем задержку перевода
-            setTimeout(async () => {
-                removeTypingIndicator();
-                
-                if (apiKey) {
-                    // Реальный перевод через API
-                    try {
-                        const translation = await translateWithDeepSeek(textToSend, 'auto', 'ru');
-                        addMessage('assistant', `Перевод страницы ${currentPage}:\n\n${translation}`);
-                        showStatus(bookStatus, 'Перевод выполнен через DeepSeek API', 'success');
-                    } catch (error) {
-                        addMessage('assistant', `Не удалось выполнить перевод через API. Использую эмуляцию.\n\n${getMockTranslation(textToSend)}`);
-                        showStatus(bookStatus, 'Перевод эмулирован', 'warning');
-                    }
-                } else {
-                    // Эмуляция перевода
-                    const mockTranslation = getMockTranslation(textToSend);
-                    addMessage('assistant', `Перевод страницы ${currentPage} (эмуляция):\n\n${mockTranslation}`);
-                    showStatus(bookStatus, 'Перевод эмулирован (введите API ключ для реального)', 'warning');
-                }
-            }, 2000);
-        }
-
-        // Отправка сообщения в чат
-        async function sendChatMessage() {
-            const message = chatInput.value.trim();
-            if (!message) return;
-            
-            addMessage('user', message);
-            chatInput.value = '';
-            
-            // Показываем индикатор набора
-            showTypingIndicator();
-            
-            // Обрабатываем сообщение
-            setTimeout(async () => {
-                removeTypingIndicator();
-                
-                if (message.toLowerCase().includes('перевед') || message.toLowerCase().includes('translate')) {
-                    // Запрос на перевод
-                    if (apiKey) {
-                        try {
-                            const translation = await translateWithDeepSeek(message, 'auto', 'ru');
-                            addMessage('assistant', translation);
-                        } catch (error) {
-                            addMessage('assistant', 'Не удалось выполнить перевод через API. Проверьте ключ или подключение.');
-                        }
+                allActiveOrders.forEach(order => {
+                    if (order.ocoGroupId) return;
+                    
+                    let typeClass, typeText;
+                    if (order.type === 'MARKET') {
+                        typeClass = 'type-market';
+                        typeText = 'Рынок';
+                    } else if (order.type === 'LIMIT') {
+                        typeClass = 'type-limit';
+                        typeText = 'Лимит';
+                    } else if (order.type === 'STOP_LIMIT') {
+                        typeClass = 'type-stop-limit';
+                        typeText = 'Стоп';
                     } else {
-                        addMessage('assistant', 'Для реального перевода введите API ключ DeepSeek. Сейчас используется эмуляция.\n\n' + getMockTranslation(message));
+                        typeClass = 'type-oco';
+                        typeText = 'OCO';
                     }
-                } else {
-                    // Обычное сообщение
-                    if (apiKey) {
-                        try {
-                            const response = await chatWithDeepSeek(message);
-                            addMessage('assistant', response);
-                        } catch (error) {
-                            addMessage('assistant', 'Не удалось получить ответ от AI. Проверьте API ключ.');
+                    
+                    let priceText = '';
+                    let statusText = '';
+                    let statusClass = '';
+                    
+                    if (order.type === 'MARKET') {
+                        priceText = `Рынок`;
+                        statusText = 'Активен';
+                        statusClass = 'status-active';
+                    } else if (order.type === 'LIMIT') {
+                        priceText = `$${formatPrice(order.limitPrice)}`;
+                        statusText = 'Активен';
+                        statusClass = 'status-active';
+                    } else if (order.type === 'STOP_LIMIT') {
+                        if (order.status === 'PENDING') {
+                            priceText = `Триггер: $${formatPrice(order.triggerPrice)}<br>Цена: $${formatPrice(order.limitPrice)}`;
+                            statusText = 'Ожидает';
+                            statusClass = 'status-pending';
+                        } else if (order.activated) {
+                            priceText = `Активен: $${formatPrice(order.limitPrice)}`;
+                            statusText = 'Активирован';
+                            statusClass = 'status-activated';
                         }
-                    } else {
-                        addMessage('assistant', getMockResponse(message));
                     }
-                }
-            }, 1500);
-        }
-
-        // Использование быстрого промпта
-        function useQuickPrompt(prompt) {
-            if (bookContent.length === 0) {
-                showStatus(bookStatus, 'Сначала загрузите книгу', 'error');
-                return;
-            }
-            
-            const pageText = bookContent[currentPage - 1];
-            if (!pageText || pageText.trim().length === 0) {
-                showStatus(bookStatus, 'Текст страницы пуст', 'warning');
-                return;
-            }
-            
-            const textToSend = pageText.length > 1000 ? pageText.substring(0, 1000) + "..." : pageText;
-            const fullMessage = `${prompt}\n\n${textToSend}`;
-            
-            addMessage('user', fullMessage);
-            
-            // Показываем индикатор набора
-            showTypingIndicator();
-            
-            setTimeout(async () => {
-                removeTypingIndicator();
-                
-                if (apiKey) {
-                    try {
-                        const response = await translateWithDeepSeek(textToSend, 'auto', 'ru');
-                        addMessage('assistant', response);
-                    } catch (error) {
-                        addMessage('assistant', getMockTranslation(textToSend));
-                    }
-                } else {
-                    addMessage('assistant', getMockTranslation(textToSend));
-                }
-            }, 2000);
-        }
-
-        // Перевод через DeepSeek API
-        async function translateWithDeepSeek(text, sourceLang, targetLang) {
-            if (!apiKey) {
-                throw new Error('API ключ не указан');
-            }
-            
-            const url = 'https://api.deepseek.com/chat/completions';
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'deepseek-chat',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'Ты профессиональный переводчик. Переводи точно на русский язык, сохраняя стиль и смысл оригинала.'
-                        },
-                        {
-                            role: 'user',
-                            content: `Переведи на русский язык:\n\n${text}`
-                        }
-                    ],
-                    max_tokens: 2000,
-                    temperature: 0.3
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Ошибка API: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (!data.choices || data.choices.length === 0) {
-                throw new Error('Нет ответа от API');
-            }
-            
-            return data.choices[0].message.content;
-        }
-
-        // Чат через DeepSeek API
-        async function chatWithDeepSeek(message) {
-            if (!apiKey) {
-                throw new Error('API ключ не указан');
-            }
-            
-            const url = 'https://api.deepseek.com/chat/completions';
-            
-            // Добавляем историю чата
-            const messages = [
-                {
-                    role: 'system',
-                    content: 'Ты помощник для перевода книг. Помогай пользователю переводить тексты на русский язык.'
-                }
-            ];
-            
-            // Добавляем последние сообщения из истории
-            const recentHistory = chatHistory.slice(-6);
-            recentHistory.forEach(msg => {
-                messages.push({
-                    role: msg.role,
-                    content: msg.content
+                    
+                    activeOrdersHtml += `
+                        <tr>
+                            <td><span class="type-badge ${typeClass}">${typeText}</span></td>
+                            <td><span class="side-badge ${order.side === 'BUY' ? 'side-buy' : 'side-sell'}">${order.side}</span></td>
+                            <td style="font-size: 11px; line-height: 1.2;">${priceText}</td>
+                            <td>${formatQuantity(order.quantity)}</td>
+                            <td>$${formatAmount(order.amount)}</td>
+                            <td><span class="commission-badge">${order.isMarket ? 'Тейкер' : 'Мейкер'}</span></td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td><button class="action-btn" onclick="cancelOrder('${order.id}')" title="Отменить ордер"><i class="fas fa-times"></i></button></td>
+                        </tr>
+                    `;
                 });
-            });
-            
-            messages.push({
-                role: 'user',
-                content: message
-            });
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'deepseek-chat',
-                    messages: messages,
-                    max_tokens: 1500,
-                    temperature: 0.7
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Ошибка API: ${response.status}`);
             }
             
-            const data = await response.json();
+            document.getElementById('active-orders-table').innerHTML = activeOrdersHtml;
             
-            if (!data.choices || data.choices.length === 0) {
-                throw new Error('Нет ответа от API');
-            }
+            let historyHtml = '';
+            const recentHistory = state.orderHistory.slice(0, 20);
             
-            return data.choices[0].message.content;
-        }
-
-        // Эмуляция перевода
-        function getMockTranslation(text) {
-            const translations = [
-                "Это пример перевода текста. В реальном режиме с API ключом перевод будет точнее и качественнее.",
-                "Переведенный текст появится здесь. Для получения реального перевода введите API ключ DeepSeek.",
-                "Эмуляция перевода. Текст будет правильно переведен при использовании настоящего API ключа.",
-                "Это имитация перевода. Получите ключ на platform.deepseek.com для доступа к AI переводчику."
-            ];
-            
-            const randomIndex = Math.floor(Math.random() * translations.length);
-            const shortText = text.length > 200 ? text.substring(0, 200) + "..." : text;
-            
-            return `${translations[randomIndex]}\n\nПример перевода фрагмента:\n"${shortText}"\n→\n"[Здесь будет перевод при использовании API ключа]"`;
-        }
-
-        // Эмуляция ответа
-        function getMockResponse(message) {
-            const responses = [
-                "Я эмулирую ответ AI. Введите API ключ DeepSeek для получения реальных ответов.",
-                "Это локальный режим. Для использования настоящего AI получите ключ на platform.deepseek.com",
-                "В этом режиме я могу только имитировать ответы. Добавьте API ключ для полноценной работы.",
-                "Работаю в оффлайн-режиме. Для переводов с AI нужен API ключ DeepSeek."
-            ];
-            
-            const randomIndex = Math.floor(Math.random() * responses.length);
-            return responses[randomIndex];
-        }
-
-        // Добавление сообщения в чат
-        function addMessage(role, content) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message message-${role}`;
-            messageDiv.textContent = content;
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            // Сохраняем в историю
-            chatHistory.push({ role, content, timestamp: new Date() });
-            
-            // Ограничиваем историю
-            if (chatHistory.length > 50) {
-                chatHistory = chatHistory.slice(-50);
-            }
-        }
-
-        // Показать индикатор набора
-        function showTypingIndicator() {
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'typing-indicator';
-            typingDiv.id = 'typingIndicator';
-            typingDiv.innerHTML = '<span></span><span></span><span></span>';
-            chatMessages.appendChild(typingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Убрать индикатор набора
-        function removeTypingIndicator() {
-            const typingIndicator = document.getElementById('typingIndicator');
-            if (typingIndicator) {
-                typingIndicator.remove();
-            }
-        }
-
-        // Настройка режима отображения
-        function setDisplayMode(showImages) {
-            showImagesMode = showImages;
-            
-            if (showImages) {
-                showImagesBtn.classList.add('active');
-                showTextBtn.classList.remove('active');
-                showStatus(bookStatus, 'Режим: с изображениями', 'info');
+            if (recentHistory.length === 0) {
+                historyHtml = `<tr><td colspan="8" class="no-data">История пуста</td></tr>`;
             } else {
-                showTextBtn.classList.add('active');
-                showImagesBtn.classList.remove('active');
-                showStatus(bookStatus, 'Режим: только текст', 'info');
+                recentHistory.forEach(order => {
+                    let typeClass, typeText;
+                    if (order.type === 'MARKET') {
+                        typeClass = 'type-market';
+                        typeText = 'Рынок';
+                    } else if (order.type === 'LIMIT') {
+                        typeClass = 'type-limit';
+                        typeText = 'Лимит';
+                    } else if (order.type === 'STOP_LIMIT') {
+                        typeClass = 'type-stop-limit';
+                        typeText = 'Стоп';
+                    } else {
+                        typeClass = 'type-oco';
+                        typeText = 'OCO';
+                    }
+                    
+                    const time = new Date(order.executedAt || order.cancelledAt || order.createdAt);
+                    const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
+                    
+                    const statusClass = order.status === 'FILLED' ? 'status-filled' : 'status-cancelled';
+                    const statusText = order.status === 'FILLED' ? 'Исполнен' : 'Отменен';
+                    const commissionText = order.commission ? `$${formatAmount(order.commission)}` : '-';
+                    
+                    historyHtml += `
+                        <tr>
+                            <td><span class="type-badge ${typeClass}">${typeText}</span></td>
+                            <td><span class="side-badge ${order.side === 'BUY' ? 'side-buy' : 'side-sell'}">${order.side}</span></td>
+                            <td>$${formatPrice(order.executedPrice || order.limitPrice)}</td>
+                            <td>${formatQuantity(order.quantity)}</td>
+                            <td>$${formatAmount(order.amount)}</td>
+                            <td>${commissionText}</td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td style="font-size: 11px;">${timeStr}</td>
+                        </tr>
+                    `;
+                });
             }
+            document.getElementById('order-history-table').innerHTML = historyHtml;
+        }
+
+        // ========== EVENT HANDLERS ==========
+        function setupEventListeners() {
+            elements.orderTypeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.orderTypeButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    toggleOrderType(btn.dataset.type);
+                });
+            });
+
+            elements.orderSide.addEventListener('change', () => {
+                toggleAmountControls();
+                updateLinkedAmounts();
+                updateAvailableAmount();
+            });
+
+            elements.placeOrderBtn.addEventListener('click', placeOrder);
+            elements.cancelAllBtn.addEventListener('click', cancelAllOrders);
+
+            document.querySelectorAll('.amount-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const percent = parseInt(e.target.dataset.percent);
+                    const container = e.target.closest('.amount-controls');
+                    if (container) {
+                        container.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                    }
+                    
+                    if (elements.orderSide.value === 'BUY') {
+                        setBuyAmountPercent(percent);
+                    } else {
+                        setSellQuantityPercent(percent);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.percent-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const percent = parseFloat(e.target.dataset.percent) / 100;
+                    const currentPrice = state.currentPrice || 1;
+                    const newPrice = currentPrice * (1 + percent);
+                    
+                    const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+                    let targetInput = null;
+                    
+                    if (orderType === 'limit') {
+                        targetInput = elements.limitPrice;
+                    } else if (orderType === 'stop_limit') {
+                        if (percent < 0) {
+                            targetInput = elements.stopPrice;
+                        } else {
+                            targetInput = elements.stopLimitPrice;
+                        }
+                    } else if (orderType === 'oco') {
+                        if (percent < 0) {
+                            targetInput = elements.ocoStopPrice;
+                        } else if (e.target.dataset.percent === '+10') {
+                            targetInput = elements.ocoLimitPrice;
+                        } else {
+                            targetInput = elements.ocoStopLimitPrice;
+                        }
+                    }
+                    
+                    if (targetInput) {
+                        targetInput.value = formatInputPrice(newPrice);
+                        updateLinkedAmounts();
+                    }
+                });
+            });
+
+            elements.settingsToggle.addEventListener('click', toggleSettings);
+            elements.settingsOverlay.addEventListener('click', closeSettings);
+            document.getElementById('save-balance-btn').addEventListener('click', saveBalance);
+            document.getElementById('reset-balance-btn').addEventListener('click', resetBalance);
+            document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
             
-            if (bookContent.length > 0) {
-                const pageText = bookContent[currentPage - 1] || '';
-                const charCount = pageText.length;
-                const wordCount = pageText.split(/\s+/).filter(w => w.length > 0).length;
-                const images = bookImages[currentPage - 1] || [];
-                renderPageContent(pageText, charCount, wordCount, images);
+            elements.updateSymbolBtn.addEventListener('click', updateSymbol);
+            
+            // Обновление комиссии при изменении
+            elements.makerFeeInput.addEventListener('change', updateFees);
+            elements.takerFeeInput.addEventListener('change', updateFees);
+        }
+
+        function updateFees() {
+            state.fees.maker = parseFloat(elements.makerFeeInput.value) || 0;
+            state.fees.taker = parseFloat(elements.takerFeeInput.value) || 0.05;
+            addToLog(`Комиссии обновлены: мейкер ${state.fees.maker}%, тейкер ${state.fees.taker}%`, 'info');
+        }
+
+        // ========== EXCHANGE SELECTOR ==========
+        function createExchangeSelector() {
+            elements.exchangeSelector.innerHTML = '';
+            
+            const sortedExchanges = Object.keys(EXCHANGES)
+                .filter(exchangeId => EXCHANGES[exchangeId].enabled)
+                .sort((a, b) => EXCHANGES[a].priority - EXCHANGES[b].priority);
+            
+            sortedExchanges.forEach(exchangeId => {
+                const exchange = EXCHANGES[exchangeId];
+                const btn = document.createElement('button');
+                btn.className = `exchange-btn ${exchangeId === 'binance' ? 'active' : ''}`;
+                btn.dataset.exchange = exchangeId;
+                btn.textContent = exchange.name;
+                btn.title = `Приоритет: ${exchange.priority}`;
+                
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.exchange-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.currentExchange = exchangeId;
+                    addToLog(`Выбрана биржа: ${exchange.name}`, 'info');
+                    updatePrice();
+                });
+                
+                elements.exchangeSelector.appendChild(btn);
+            });
+        }
+
+        async function testAllExchanges() {
+            addToLog('Тестирование подключения к биржам...', 'info');
+            
+            const testPromises = Object.keys(EXCHANGES)
+                .filter(exchangeId => EXCHANGES[exchangeId].enabled)
+                .map(async exchangeId => {
+                    const isWorking = await testExchangeAPI(exchangeId);
+                    return { exchangeId, isWorking };
+                });
+            
+            const results = await Promise.allSettled(testPromises);
+            
+            let workingExchanges = 0;
+            results.forEach(result => {
+                if (result.status === 'fulfilled') {
+                    const { exchangeId, isWorking } = result.value;
+                    if (isWorking) {
+                        workingExchanges++;
+                        addToLog(`${EXCHANGES[exchangeId].name}: ✓ Работает`, 'success');
+                    } else {
+                        addToLog(`${EXCHANGES[exchangeId].name}: ✗ Недоступен`, 'error');
+                    }
+                }
+            });
+            
+            if (workingExchanges > 0) {
+                addToLog(`Найдено ${workingExchanges} работающих бирж`, 'success');
+            } else {
+                addToLog('Нет доступных бирж. Цены будут отображаться как 0.00', 'error');
             }
         }
 
-        // Тестирование API соединения
-        async function testApiConnection() {
-            if (!apiKey) {
-                showStatus(bookStatus, 'Введите API ключ для тестирования', 'warning');
-                addMessage('system', 'Для теста API соединения нужен ключ DeepSeek.');
-                return;
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', async () => {
+            setupEventListeners();
+            createExchangeSelector();
+            loadFromLocalStorage();
+            updateHeaderDisplay();
+            updateTotalValue();
+            toggleAmountControls();
+            updateLinkedAmounts();
+            updateAvailableAmount();
+            
+            // Test exchanges in background
+            setTimeout(async () => {
+                await testAllExchanges();
+                updatePrice(); // Try to get real price after testing
+            }, 1000);
+            
+            startPriceUpdates();
+            
+            setInterval(() => {
+                checkAllOrders();
+            }, 1000);
+            
+            addToLog('Торговый симулятор запущен', 'success');
+            addToLog('Подключение к биржам:', 'info');
+            addToLog('- Binance: основной источник цен', 'info');
+            addToLog('- Bybit: резервный источник', 'info');
+            addToLog('- Kraken: дополнительный источник', 'info');
+            addToLog('- MEXC: альтернативный источник', 'info');
+            addToLog('Комиссии: мейкер 0.0000%, тейкер 0.0500%', 'info');
+        });
+
+        // ========== FORM HELPER FUNCTIONS ==========
+        function toggleOrderType(type) {
+            elements.marketOrderFields.style.display = 'none';
+            elements.limitOrderFields.style.display = 'none';
+            elements.stopLimitFields.style.display = 'none';
+            elements.ocoFields.style.display = 'none';
+            
+            if (type === 'market') {
+                elements.marketOrderFields.style.display = 'block';
+            } else if (type === 'limit') {
+                elements.limitOrderFields.style.display = 'block';
+            } else if (type === 'stop_limit') {
+                elements.stopLimitFields.style.display = 'block';
+            } else if (type === 'oco') {
+                elements.ocoFields.style.display = 'block';
             }
             
-            showStatus(bookStatus, 'Тестирую соединение с DeepSeek API...', 'info');
+            updateLinkedAmounts();
+            updateAvailableAmount();
+        }
+
+        function toggleAmountControls() {
+            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+            const isMarket = orderType === 'market';
             
-            try {
-                const response = await fetch('https://api.deepseek.com/models', {
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`
+            if (elements.orderSide.value === 'BUY') {
+                elements.buyControls.style.display = 'block';
+                elements.sellControls.style.display = 'none';
+                if (isMarket) {
+                    elements.marketLabel.textContent = 'Сумма (USDT)';
+                }
+            } else {
+                elements.buyControls.style.display = 'none';
+                elements.sellControls.style.display = 'block';
+                if (isMarket) {
+                    elements.marketLabel.textContent = 'Количество';
+                }
+            }
+            updateLinkedAmounts();
+            updateAvailableAmount();
+        }
+
+        function updateAvailableAmount() {
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
+            const availableCrypto = state.balance[baseSymbol] || 0;
+            const availableUSDT = state.balance.USDT || 0;
+            
+            if (elements.orderSide.value === 'BUY') {
+                elements.marketAvailable.textContent = `${formatAmount(availableUSDT)} USDT`;
+            } else {
+                elements.marketAvailable.textContent = `${formatQuantity(availableCrypto)} ${baseSymbol}`;
+            }
+        }
+
+        function updateLinkedAmounts() {
+            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+            const isMarket = orderType === 'market';
+            
+            if (isMarket) {
+                // Для рыночных ордеров обновляем сумму/количество в реальном времени
+                if (elements.orderSide.value === 'BUY') {
+                    const amount = parseFloat(elements.buyAmount.value) || 0;
+                    const price = state.currentPrice || 1;
+                    if (price > 0) {
+                        const quantity = amount / price;
+                        elements.buyQuantity.value = formatInputPrice(quantity);
+                    } else {
+                        elements.buyQuantity.value = '';
                     }
-                });
-                
-                if (response.ok) {
-                    showStatus(bookStatus, 'Соединение с DeepSeek API успешно', 'success');
-                    addMessage('system', '✅ Соединение с DeepSeek API установлено!');
                 } else {
-                    showStatus(bookStatus, 'Ошибка соединения с API', 'error');
-                    addMessage('system', '❌ Не удалось подключиться к DeepSeek API. Проверьте ключ.');
+                    const quantity = parseFloat(elements.sellQuantity.value) || 0;
+                    const price = state.currentPrice || 1;
+                    if (price > 0) {
+                        const amount = quantity * price;
+                        elements.sellAmount.value = formatAmount(amount);
+                    } else {
+                        elements.sellAmount.value = '';
+                    }
+                }
+            } else {
+                // Для лимитных ордеров
+                if (elements.orderSide.value === 'BUY') {
+                    updateBuyQuantityFromAmount();
+                } else {
+                    updateSellAmountFromQuantity();
+                }
+            }
+            updateTotalCost();
+        }
+
+        function updateBuyQuantityFromAmount() {
+            const amount = parseFloat(elements.buyAmount.value) || 0;
+            const price = getCurrentPriceInput();
+            
+            if (price > 0) {
+                const quantity = amount / price;
+                elements.buyQuantity.value = formatInputPrice(quantity);
+            } else {
+                elements.buyQuantity.value = '';
+            }
+        }
+
+        function updateSellAmountFromQuantity() {
+            const quantity = parseFloat(elements.sellQuantity.value) || 0;
+            const price = getCurrentPriceInput();
+            
+            if (price > 0) {
+                const amount = quantity * price;
+                elements.sellAmount.value = formatAmount(amount);
+            } else {
+                elements.sellAmount.value = '';
+            }
+        }
+
+        function getCurrentPriceInput() {
+            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+            
+            if (orderType === 'limit') {
+                return parseFloat(elements.limitPrice.value) || state.currentPrice || 0;
+            } else if (orderType === 'stop_limit') {
+                return parseFloat(elements.stopLimitPrice.value) || state.currentPrice || 0;
+            } else if (orderType === 'oco') {
+                return parseFloat(elements.ocoStopLimitPrice.value) || state.currentPrice || 0;
+            }
+            return state.currentPrice || 0;
+        }
+
+        function updateTotalCost() {
+            let amount = 0;
+            let commission = 0;
+            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+            const isMarket = orderType === 'market';
+            
+            if (elements.orderSide.value === 'BUY') {
+                amount = parseFloat(elements.buyAmount.value) || 0;
+            } else {
+                amount = parseFloat(elements.sellAmount.value) || 0;
+            }
+            
+            commission = calculateCommission(orderType, amount, isMarket);
+            
+            elements.totalCost.textContent = formatAmount(amount) + ' USDT';
+            elements.commissionAmount.textContent = formatAmount(commission) + ' USDT';
+        }
+
+        function setBuyAmountPercent(percent) {
+            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+            const maxAmount = state.balance.USDT;
+            const amount = (maxAmount * percent) / 100;
+            
+            if (orderType === 'market') {
+                // Для рыночных ордеров только сумма
+                elements.buyAmount.value = amount.toFixed(2);
+            } else {
+                elements.buyAmount.value = amount.toFixed(2);
+                updateBuyQuantityFromAmount();
+            }
+        }
+
+        function setSellQuantityPercent(percent) {
+            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
+            const maxQuantity = state.balance[baseSymbol] || 0;
+            const quantity = (maxQuantity * percent) / 100;
+            
+            if (orderType === 'market') {
+                // Для рыночных ордеров только количество
+                elements.sellQuantity.value = formatInputPrice(quantity);
+            } else {
+                elements.sellQuantity.value = formatInputPrice(quantity);
+                updateSellAmountFromQuantity();
+            }
+        }
+
+        function updateSymbol() {
+            const symbol = elements.symbolInput.value.trim().toUpperCase();
+            if (symbol && symbol.length >= 3) {
+                state.currentSymbol = symbol;
+                const baseSymbol = getBaseSymbol(symbol);
+                elements.headerSymbol.textContent = `${baseSymbol}/USDT`;
+                elements.headerCryptoLabel.textContent = `Баланс ${baseSymbol}`;
+                addToLog(`Символ изменен на: ${symbol}`, 'info');
+                state.currentPrice = 0;
+                state.lastPrice = 0;
+                updateHeaderDisplay();
+                updatePrice();
+                updateAvailableAmount();
+            }
+        }
+
+        function updateHeaderDisplay() {
+            elements.headerPrice.textContent = `$${formatPrice(state.currentPrice)}`;
+            
+            if (state.lastUpdateTimestamp) {
+                const timeStr = state.lastUpdateTimestamp.toLocaleTimeString('ru-RU', {hour12: false});
+                elements.headerUpdated.textContent = timeStr;
+            }
+            
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
+            const cryptoBalance = state.balance[baseSymbol] || 0;
+            
+            elements.headerBalanceUsdt.textContent = formatAmount(state.balance.USDT);
+            elements.headerBalanceCrypto.textContent = formatQuantity(cryptoBalance);
+            elements.headerCryptoValue.textContent = `≈ $${formatAmount(cryptoBalance * state.currentPrice)}`;
+            
+            updateTotalValue();
+        }
+
+        function updateTotalValue() {
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
+            const cryptoBalance = state.balance[baseSymbol] || 0;
+            const cryptoValue = cryptoBalance * state.currentPrice;
+            const totalValue = state.balance.USDT + cryptoValue;
+            
+            elements.headerTotalValue.textContent = `$${formatAmount(totalValue)}`;
+        }
+
+        // ========== LOCAL STORAGE ==========
+        function saveToLocalStorage() {
+            const saveData = {
+                balance: state.balance,
+                orders: state.orders,
+                pendingOrders: state.pendingOrders,
+                orderHistory: state.orderHistory,
+                currentSymbol: state.currentSymbol,
+                sessionStartTime: state.sessionStartTime,
+                initialTotalValue: state.initialTotalValue,
+                fees: state.fees,
+                totalCommissionPaid: state.totalCommissionPaid
+            };
+            localStorage.setItem('paperTradingData', JSON.stringify(saveData));
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('paperTradingData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    
+                    state.balance = data.balance || { USDT: 10000, BTC: 0 };
+                    state.orders = data.orders || [];
+                    state.pendingOrders = data.pendingOrders || [];
+                    state.orderHistory = data.orderHistory || [];
+                    state.currentSymbol = data.currentSymbol || 'BTCUSDT';
+                    state.sessionStartTime = data.sessionStartTime ? new Date(data.sessionStartTime) : new Date();
+                    state.initialTotalValue = data.initialTotalValue || 10000;
+                    state.fees = data.fees || { ...CONFIG.fees };
+                    state.totalCommissionPaid = data.totalCommissionPaid || 0;
+                    
+                    elements.symbolInput.value = state.currentSymbol;
+                    elements.makerFeeInput.value = state.fees.maker;
+                    elements.takerFeeInput.value = state.fees.taker;
+                    
+                    updateHeaderDisplay();
+                    updateOrdersDisplay();
+                    updateTotalValue();
+                    
+                    addToLog('Данные загружены из localStorage', 'success');
                 }
             } catch (error) {
-                showStatus(bookStatus, 'Ошибка сети', 'error');
-                addMessage('system', '❌ Сетевая ошибка при подключении к API.');
+                console.error('Error loading data:', error);
             }
         }
 
-        // Сохранение API ключа
-        function saveApiKey() {
-            const key = apiKeyInput.value.trim();
-            if (key) {
-                apiKey = key;
-                localStorage.setItem('deepseekApiKey', key);
-                showStatus(bookStatus, 'API ключ сохранен', 'success');
-                addMessage('system', 'API ключ сохранен. Теперь можно использовать реальный AI перевод.');
-            } else {
-                showStatus(bookStatus, 'Введите API ключ', 'error');
-            }
+        // ========== SETTINGS FUNCTIONS ==========
+        function toggleSettings() {
+            elements.settingsPanel.classList.add('active');
+            elements.settingsOverlay.classList.add('active');
         }
 
-        // Очистка чата
-        function clearChat() {
-            if (confirm('Очистить историю чата?')) {
-                chatMessages.innerHTML = '';
-                chatHistory = [];
-                addMessage('system', 'История чата очищена.');
-            }
+        function closeSettings() {
+            elements.settingsPanel.classList.remove('active');
+            elements.settingsOverlay.classList.remove('active');
         }
 
-        // Копирование истории чата
-        function copyChatHistory() {
-            const chatText = chatHistory.map(msg => 
-                `${msg.role === 'user' ? 'Вы' : 'AI'}: ${msg.content}`
-            ).join('\n\n');
+        function saveBalance() {
+            const usdt = parseFloat(document.getElementById('initial-usdt').value);
+            const cryptoSymbol = document.getElementById('crypto-symbol').value.trim().toUpperCase();
+            const cryptoAmount = parseFloat(document.getElementById('initial-crypto').value);
             
-            navigator.clipboard.writeText(chatText)
-                .then(() => {
-                    showStatus(bookStatus, 'История чата скопирована', 'success');
-                })
-                .catch(() => {
-                    showStatus(bookStatus, 'Не удалось скопировать', 'error');
-                });
+            if (isNaN(usdt) || usdt < 0) {
+                addToLog('Ошибка: Неверная сумма USDT', 'error');
+                return;
+            }
+            
+            state.balance.USDT = usdt;
+            if (cryptoSymbol && !isNaN(cryptoAmount) && cryptoAmount >= 0) {
+                state.balance[cryptoSymbol] = cryptoAmount;
+            }
+            
+            state.fees.maker = parseFloat(elements.makerFeeInput.value) || 0;
+            state.fees.taker = parseFloat(elements.takerFeeInput.value) || 0.05;
+            
+            updateHeaderDisplay();
+            updateTotalValue();
+            addToLog('Настройки сохранены', 'success');
+            closeSettings();
+            saveToLocalStorage();
         }
 
-        // Сброс книги
-        function resetBook() {
-            currentBook = null;
-            currentPage = 1;
-            totalPages = 0;
-            bookContent = [];
-            bookImages = [];
-            pageInfo.textContent = 'Страница: - / -';
-            bookContentArea.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><i class="fas fa-book fa-3x" style="margin-bottom: 15px; color: #3b82f6;"></i><h3 style="color: #334155; margin-bottom: 10px;">Загрузите книгу</h3><p>Поддерживаются PDF и DOCX файлы с изображениями</p></div>';
-            showStatus(bookStatus, 'Готов к загрузке книги', 'info');
+        function resetBalance() {
+            state.balance = { USDT: 10000, BTC: 0 };
+            state.orders = [];
+            state.pendingOrders = [];
+            state.orderHistory = [];
+            state.initialTotalValue = 10000;
+            state.totalCommissionPaid = 0;
+            
+            updateHeaderDisplay();
+            updateOrdersDisplay();
+            updateTotalValue();
+            addToLog('Баланс сброшен', 'info');
+            saveToLocalStorage();
         }
 
-        // Открытие изображения в полном размере (глобальная функция)
-        window.openFullscreenImage = function(imgSrc, currentIndex, totalImages) {
-            fullscreenImg.src = imgSrc;
-            imageCounterFullscreen.textContent = `${currentIndex} / ${totalImages}`;
-            fullscreenImage.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+        function clearAllData() {
+            state.balance = { USDT: 10000, BTC: 0 };
+            state.orders = [];
+            state.pendingOrders = [];
+            state.orderHistory = [];
+            state.initialTotalValue = 10000;
+            state.totalCommissionPaid = 0;
+            
+            updateHeaderDisplay();
+            updateOrdersDisplay();
+            updateTotalValue();
+            document.getElementById('execution-log').innerHTML = `
+                <div class="log-item">
+                    <div class="log-time">${new Date().toLocaleTimeString('ru-RU', {hour12: false})}</div>
+                    <div class="log-message info">Все данные очищены</div>
+                </div>
+            `;
+            
+            localStorage.removeItem('paperTradingData');
+            addToLog('Все данные очищены', 'info');
+        }
+
+        // ========== GLOBAL FUNCTIONS ==========
+        window.cancelOrder = function(orderId) {
+            return cancelSingleOrder(orderId);
         };
 
-        // Закрытие полноэкранного режима
-        function closeFullscreenImage() {
-            fullscreenImage.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
+        window.cancelOCOGroup = function(groupId) {
+            return cancelOCOGroup(groupId);
+        };
 
-        // Показать статус
-        function showStatus(element, message, type) {
-            element.textContent = message;
-            element.className = 'translation-status';
-            
-            switch(type) {
-                case 'success':
-                    element.classList.add('status-success');
-                    break;
-                case 'error':
-                    element.classList.add('status-error');
-                    break;
-                case 'warning':
-                    element.classList.add('status-warning');
-                    break;
-                case 'info':
-                    element.classList.add('status-info');
-                    break;
-            }
-        }
+        window.closeSettings = closeSettings;
     </script>
 </body>
 </html>
