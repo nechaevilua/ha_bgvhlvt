@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MEXC Trading Simulator</title>
+    <title>Multi-Exchange Trading Simulator</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -176,6 +176,37 @@
             50% { opacity: 0.7; transform: scale(1.1); }
             100% { opacity: 1; transform: scale(1); }
         }
+
+        /* Exchange Selector */
+        .exchange-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .exchange-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--dark-border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .exchange-btn.active {
+            border-color: var(--primary);
+            background: rgba(0, 163, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .exchange-btn.tradingview { border-color: #2962ff; }
+        .exchange-btn.binance { border-color: #f0b90b; }
+        .exchange-btn.bybit { border-color: #56d6f9; }
+        .exchange-btn.kraken { border-color: #5846a0; }
 
         /* Main Content */
         .main-content {
@@ -837,6 +868,10 @@
             .header-stats {
                 grid-template-columns: 1fr;
             }
+            
+            .exchange-selector {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -846,8 +881,8 @@
         <div class="header">
             <div class="header-top">
                 <div class="header-title">
-                    <h1><i class="fas fa-chart-line"></i> MEXC Trading Simulator</h1>
-                    <p>Торговый симулятор с реальными ценами MEXC</p>
+                    <h1><i class="fas fa-chart-line"></i> Multi-Exchange Trading Simulator</h1>
+                    <p>Торговый симулятор с ценами TradingView, Binance, Bybit, Kraken</p>
                 </div>
                 
                 <div class="header-price-info">
@@ -857,6 +892,12 @@
                     <div class="connection-status">
                         <span class="status-dot" id="status-dot"></span>
                         <span id="status-text">Загрузка...</span>
+                    </div>
+                    <div class="exchange-selector">
+                        <button class="exchange-btn tradingview active" data-exchange="tradingview">TradingView</button>
+                        <button class="exchange-btn binance" data-exchange="binance">Binance</button>
+                        <button class="exchange-btn bybit" data-exchange="bybit">Bybit</button>
+                        <button class="exchange-btn kraken" data-exchange="kraken">Kraken</button>
                     </div>
                 </div>
                 
@@ -887,7 +928,7 @@
                 <div class="stat-card">
                     <div class="label">Обновлено</div>
                     <div class="value" id="header-updated">-</div>
-                    <div class="sub-value" id="header-api-source">MEXC API</div>
+                    <div class="sub-value" id="header-api-source">TradingView</div>
                 </div>
             </div>
         </div>
@@ -977,7 +1018,7 @@
                         <div class="log-scroll" id="execution-log">
                             <div class="log-item">
                                 <div class="log-time">--:--:--</div>
-                                <div class="log-message info">Система запущена. Подключение к MEXC API...</div>
+                                <div class="log-message info">Система запущена. Подключение к TradingView...</div>
                             </div>
                         </div>
                     </div>
@@ -1242,7 +1283,7 @@
 
         <div class="form-group">
             <div class="form-label">Интервал обновления цен (мс)</div>
-            <input type="number" class="form-control" id="price-interval" step="100" min="1000" max="10000" value="1000">
+            <input type="number" class="form-control" id="price-interval" step="100" min="1000" max="10000" value="3000">
         </div>
 
         <button class="btn btn-primary" id="save-balance-btn" style="width: 100%; margin-bottom: 20px;">
@@ -1269,7 +1310,7 @@
     <script>
         // ========== КОНФИГУРАЦИЯ ==========
         const CONFIG = {
-            updateInterval: 1000,
+            updateInterval: 3000,
             maxOrders: 100,
             maxHistory: 500,
             initialBalance: {
@@ -1301,10 +1342,8 @@
             pricePrecision: 8,
             fees: { ...CONFIG.fees },
             totalCommissionPaid: 0,
-            ws: null,
-            wsConnected: false,
-            wsRetryCount: 0,
-            maxWsRetries: 3
+            currentExchange: 'tradingview',
+            exchangePriority: ['tradingview', 'binance', 'bybit', 'kraken']
         };
 
         // ========== DOM ЭЛЕМЕНТЫ ==========
@@ -1348,6 +1387,7 @@
             stopLimitFields: document.getElementById('stop-limit-fields'),
             ocoFields: document.getElementById('oco-fields'),
             orderTypeButtons: document.querySelectorAll('.order-type-btn'),
+            exchangeButtons: document.querySelectorAll('.exchange-btn'),
             settingsToggle: document.getElementById('settings-toggle'),
             settingsPanel: document.getElementById('settings-panel'),
             settingsOverlay: document.getElementById('settings-overlay'),
@@ -1361,228 +1401,152 @@
             currentPrice3: document.getElementById('current-price-3')
         };
 
-        // ========== WEB SOCKET ПОДКЛЮЧЕНИЕ (ИСПРАВЛЕННОЕ) ==========
-        function connectWebSocket() {
-            try {
-                if (state.ws) {
-                    state.ws.close();
-                }
-                
-                const baseSymbol = getBaseSymbol(state.currentSymbol);
-                const wsSymbol = baseSymbol.toLowerCase() + 'usdt';
-                
-                // Используем альтернативный WebSocket URL для MEXC
-                const wsUrl = 'wss://contract.mexc.com/ws';
-                state.ws = new WebSocket(wsUrl);
-                
-                state.ws.onopen = function() {
-                    console.log('WebSocket подключен к MEXC');
-                    state.wsConnected = true;
-                    state.wsRetryCount = 0;
-                    updateConnectionStatus(true, 'MEXC WS');
-                    
-                    // Подписываемся на поток тикера (исправленный формат)
-                    const subscribeMsg = {
-                        "method": "SUBSCRIPTION",
-                        "params": [`spot@public.miniTicker.v3.api@${wsSymbol.toUpperCase()}`]
-                    };
-                    
-                    state.ws.send(JSON.stringify(subscribeMsg));
-                    addToLog(`WebSocket подключен, подписка на ${wsSymbol}`, 'success');
-                    
-                    // Также пробуем альтернативный поток
-                    setTimeout(() => {
-                        if (state.ws && state.ws.readyState === WebSocket.OPEN) {
-                            const subscribeMsg2 = {
-                                "method": "SUBSCRIPTION",
-                                "params": [`spot@public.deals.v3.api@${wsSymbol.toUpperCase()}`]
-                            };
-                            state.ws.send(JSON.stringify(subscribeMsg2));
-                        }
-                    }, 1000);
-                };
-                
-                state.ws.onmessage = function(event) {
-                    try {
-                        const data = JSON.parse(event.data);
-                        
-                        // Обработка различных форматов данных от MEXC
-                        if (data && data.data) {
-                            // Формат 1: данные в поле data
-                            if (data.data.last) {
-                                const price = parseFloat(data.data.last);
-                                if (price > 0) {
-                                    updatePriceFromWebSocket(price, 'ticker');
-                                }
-                            }
-                        }
-                        else if (data && data.c) {
-                            // Формат 2: поле c содержит цену
-                            const price = parseFloat(data.c);
-                            if (price > 0) {
-                                updatePriceFromWebSocket(price, 'ticker');
-                            }
-                        }
-                        else if (data && data.d) {
-                            // Формат 3: данные в поле d
-                            if (data.d.c) {
-                                const price = parseFloat(data.d.c);
-                                if (price > 0) {
-                                    updatePriceFromWebSocket(price, 'miniTicker');
-                                }
-                            }
-                            else if (data.d.p) {
-                                const price = parseFloat(data.d.p);
-                                if (price > 0) {
-                                    updatePriceFromWebSocket(price, 'deals');
-                                }
-                            }
-                        }
-                        
-                        // Heartbeat/ping
-                        if (data && data.ping) {
-                            state.ws.send(JSON.stringify({ pong: data.ping }));
-                        }
-                        if (data && data.code === 0 && data.msg === "PONG") {
-                            // PONG ответ
-                        }
-                        
-                    } catch (e) {
-                        console.log('Ошибка парсинга WebSocket:', e);
-                    }
-                };
-                
-                state.ws.onerror = function(error) {
-                    console.error('Ошибка WebSocket:', error);
-                    state.wsConnected = false;
-                    updateConnectionStatus(false, 'WS ошибка');
-                };
-                
-                state.ws.onclose = function(event) {
-                    console.log('WebSocket закрыт, код:', event.code, 'причина:', event.reason);
-                    state.wsConnected = false;
-                    updateConnectionStatus(false, 'WS отключен');
-                    
-                    // Пытаемся переподключиться
-                    if (state.wsRetryCount < state.maxWsRetries) {
-                        state.wsRetryCount++;
-                        const delay = Math.min(3000 * state.wsRetryCount, 10000);
-                        
-                        addToLog(`Переподключение через ${delay/1000}сек (попытка ${state.wsRetryCount}/${state.maxWsRetries})`, 'warning');
-                        
-                        setTimeout(() => {
-                            connectWebSocket();
-                        }, delay);
-                    } else {
-                        addToLog('WebSocket недоступен, используем HTTP обновление', 'error');
-                    }
-                };
-                
-            } catch (error) {
-                console.error('Ошибка подключения WebSocket:', error);
-                state.wsConnected = false;
-                updateConnectionStatus(false, 'WS ошибка');
-            }
-        }
+        // ========== ПРОКСИ ДЛЯ ОБХОДА CORS ==========
+        const CORS_PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://cors-anywhere.herokuapp.com/'
+        ];
 
-        function updatePriceFromWebSocket(price, source) {
-            const oldPrice = state.currentPrice;
-            state.currentPrice = price;
-            state.lastUpdateTimestamp = new Date();
-            
-            // Расчет изменения цены
-            let changePercent = 0;
-            if (oldPrice > 0 && state.currentPrice > 0) {
-                changePercent = ((state.currentPrice - oldPrice) / oldPrice) * 100;
-            }
-            
-            // Обновление заголовка
-            elements.headerPrice.textContent = `$${formatPrice(state.currentPrice)}`;
-            elements.headerChange.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
-            elements.headerChange.className = `change ${changePercent >= 0 ? 'positive' : 'negative'}`;
-            
-            // Обновление времени
-            const now = new Date();
-            elements.headerUpdated.textContent = now.toLocaleTimeString('ru-RU', {hour12: false});
-            elements.headerApiSource.textContent = `MEXC ${source}`;
-            
-            // Обновление отображения текущей цены
-            const currentPriceStr = formatPrice(state.currentPrice);
-            elements.currentPrice1.textContent = currentPriceStr;
-            elements.currentPrice2.textContent = currentPriceStr;
-            elements.currentPrice3.textContent = currentPriceStr;
-            
-            // Обновление формы
-            updateLinkedAmounts();
-            updateTotalValue();
-            
-            // Проверка ордеров
-            checkAllOrders();
-        }
-
-        // ========== HTTP FALLBACK (ИСПРАВЛЕННЫЙ С CORS-ПРОКСИ) ==========
-        async function getMexcPriceHTTP() {
+        // ========== ПОЛУЧЕНИЕ ЦЕН С TRADINGVIEW (ОСНОВНОЙ ИСТОЧНИК) ==========
+        async function getTradingViewPrice() {
             try {
                 const baseSymbol = getBaseSymbol(state.currentSymbol);
+                const symbol = baseSymbol.toUpperCase() + 'USD';
                 
-                // Формируем символ для API (без разделителя)
-                const symbol = baseSymbol.toUpperCase() + 'USDT';
+                // TradingView API для получения данных
+                const url = `https://scanner.tradingview.com/crypto/scan?symbols=${symbol}`;
                 
-                // Пробуем разные прокси сервисы
-                const proxyServices = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`,
-                    `https://corsproxy.io/?${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`,
-                    `https://cors-anywhere.herokuapp.com/https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`
-                ];
-                
-                for (const proxyUrl of proxyServices) {
+                for (const proxy of CORS_PROXIES) {
                     try {
-                        const response = await fetch(proxyUrl, {
+                        const response = await fetch(proxy + encodeURIComponent(url), {
                             method: 'GET',
                             headers: {
                                 'Accept': 'application/json',
                                 'Content-Type': 'application/json'
-                            },
-                            timeout: 5000
+                            }
                         });
                         
                         if (response.ok) {
                             const data = await response.json();
                             
-                            if (data && data.price) {
-                                return {
-                                    price: parseFloat(data.price),
-                                    source: 'MEXC API (прокси)'
-                                };
+                            if (data && data.data && data.data.length > 0) {
+                                const price = data.data[0].d[3]; // Цена закрытия
+                                if (price) {
+                                    return {
+                                        price: price,
+                                        source: 'TradingView'
+                                    };
+                                }
                             }
                         }
-                    } catch (proxyError) {
-                        console.log(`Прокси ${proxyUrl} не работает, пробуем следующий`);
+                    } catch (error) {
+                        console.log(`Прокси ${proxy} не работает, пробуем следующий`);
                         continue;
                     }
                 }
                 
-                // Если прокси не работают, пробуем CoinGecko как fallback
-                try {
-                    const coinGeckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${baseSymbol.toLowerCase()}&vs_currencies=usd`;
-                    const response = await fetch(coinGeckoUrl);
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        const price = data[baseSymbol.toLowerCase()]?.usd;
-                        if (price) {
-                            return {
-                                price: price,
-                                source: 'CoinGecko API'
-                            };
+            } catch (error) {
+                console.error('TradingView error:', error);
+            }
+            
+            return null;
+        }
+
+        // ========== ПОЛУЧЕНИЕ ЦЕН С BINANCE ==========
+        async function getBinancePrice() {
+            try {
+                const baseSymbol = getBaseSymbol(state.currentSymbol);
+                const symbol = baseSymbol.toUpperCase() + 'USDT';
+                const url = `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`;
+                
+                for (const proxy of CORS_PROXIES) {
+                    try {
+                        const response = await fetch(proxy + encodeURIComponent(url));
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data && data.price) {
+                                return {
+                                    price: parseFloat(data.price),
+                                    source: 'Binance'
+                                };
+                            }
                         }
+                    } catch (error) {
+                        continue;
                     }
-                } catch (cgError) {
-                    console.log('CoinGecko API error:', cgError);
                 }
                 
             } catch (error) {
-                console.error('HTTP fallback error:', error);
+                console.error('Binance error:', error);
+            }
+            
+            return null;
+        }
+
+        // ========== ПОЛУЧЕНИЕ ЦЕН С BYBIT ==========
+        async function getBybitPrice() {
+            try {
+                const baseSymbol = getBaseSymbol(state.currentSymbol);
+                const symbol = baseSymbol.toUpperCase() + 'USDT';
+                const url = `https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`;
+                
+                for (const proxy of CORS_PROXIES) {
+                    try {
+                        const response = await fetch(proxy + encodeURIComponent(url));
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data && data.result && data.result.list && data.result.list.length > 0) {
+                                const price = parseFloat(data.result.list[0].lastPrice);
+                                return {
+                                    price: price,
+                                    source: 'Bybit'
+                                };
+                            }
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Bybit error:', error);
+            }
+            
+            return null;
+        }
+
+        // ========== ПОЛУЧЕНИЕ ЦЕН С KRAKEN ==========
+        async function getKrakenPrice() {
+            try {
+                const baseSymbol = getBaseSymbol(state.currentSymbol);
+                const symbol = baseSymbol.toUpperCase() + 'USD';
+                const url = `https://api.kraken.com/0/public/Ticker?pair=${symbol}`;
+                
+                for (const proxy of CORS_PROXIES) {
+                    try {
+                        const response = await fetch(proxy + encodeURIComponent(url));
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const tickerKey = Object.keys(data.result)[0];
+                            if (tickerKey && data.result[tickerKey].c) {
+                                const price = parseFloat(data.result[tickerKey].c[0]);
+                                return {
+                                    price: price,
+                                    source: 'Kraken'
+                                };
+                            }
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Kraken error:', error);
             }
             
             return null;
@@ -1593,7 +1557,7 @@
             if (state.isUpdatingPrice) return;
             
             const now = Date.now();
-            if (now - state.lastPriceCheck < 3000) { // 3 секунды для HTTP
+            if (now - state.lastPriceCheck < CONFIG.updateInterval) {
                 return;
             }
             
@@ -1601,52 +1565,99 @@
             state.lastPriceCheck = now;
             
             try {
-                // Если WebSocket не подключен, используем HTTP fallback
-                if (!state.wsConnected) {
-                    updateConnectionStatus(false, 'HTTP обновление...');
-                    
-                    const priceResult = await getMexcPriceHTTP();
-                    
-                    if (priceResult && priceResult.price > 0) {
-                        const oldPrice = state.currentPrice;
-                        state.currentPrice = priceResult.price;
-                        state.lastUpdateTimestamp = new Date();
+                updateConnectionStatus(false, 'Обновление...');
+                
+                let priceResult = null;
+                
+                // Пробуем получить цену с текущей выбранной биржи
+                switch (state.currentExchange) {
+                    case 'tradingview':
+                        priceResult = await getTradingViewPrice();
+                        break;
+                    case 'binance':
+                        priceResult = await getBinancePrice();
+                        break;
+                    case 'bybit':
+                        priceResult = await getBybitPrice();
+                        break;
+                    case 'kraken':
+                        priceResult = await getKrakenPrice();
+                        break;
+                }
+                
+                // Если текущая биржа не работает, пробуем остальные по порядку
+                if (!priceResult) {
+                    for (const exchange of state.exchangePriority) {
+                        if (exchange === state.currentExchange) continue;
                         
-                        // Расчет изменения цены
-                        let changePercent = 0;
-                        if (oldPrice > 0 && state.currentPrice > 0) {
-                            changePercent = ((state.currentPrice - oldPrice) / oldPrice) * 100;
+                        switch (exchange) {
+                            case 'tradingview':
+                                priceResult = await getTradingViewPrice();
+                                break;
+                            case 'binance':
+                                priceResult = await getBinancePrice();
+                                break;
+                            case 'bybit':
+                                priceResult = await getBybitPrice();
+                                break;
+                            case 'kraken':
+                                priceResult = await getKrakenPrice();
+                                break;
                         }
                         
-                        elements.headerChange.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
-                        elements.headerChange.className = `change ${changePercent >= 0 ? 'positive' : 'negative'}`;
-                        
-                        updateConnectionStatus(true, priceResult.source);
-                        
-                        // Обновление отображения
-                        updateHeaderDisplay();
-                        updateLinkedAmounts();
-                        updateTotalValue();
-                        
-                        // Обновление отображения текущей цены
-                        const currentPriceStr = formatPrice(state.currentPrice);
-                        elements.currentPrice1.textContent = currentPriceStr;
-                        elements.currentPrice2.textContent = currentPriceStr;
-                        elements.currentPrice3.textContent = currentPriceStr;
-                        
-                        // Проверка ордеров
-                        checkAllOrders();
-                        
-                        addToLog(`Цена обновлена (HTTP): $${formatPrice(state.currentPrice)}`, 'success');
-                    } else {
-                        updateConnectionStatus(false, 'Нет соединения');
-                        addToLog(`Не удалось получить цену для ${state.currentSymbol}`, 'error');
+                        if (priceResult) {
+                            state.currentExchange = exchange;
+                            updateExchangeButtons();
+                            break;
+                        }
                     }
+                }
+                
+                if (priceResult && priceResult.price > 0) {
+                    const oldPrice = state.currentPrice;
+                    state.currentPrice = priceResult.price;
+                    state.lastUpdateTimestamp = new Date();
+                    
+                    // Расчет изменения цены
+                    let changePercent = 0;
+                    if (oldPrice > 0 && state.currentPrice > 0) {
+                        changePercent = ((state.currentPrice - oldPrice) / oldPrice) * 100;
+                    }
+                    
+                    // Обновление заголовка
+                    elements.headerPrice.textContent = `$${formatPrice(state.currentPrice)}`;
+                    elements.headerChange.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+                    elements.headerChange.className = `change ${changePercent >= 0 ? 'positive' : 'negative'}`;
+                    
+                    updateConnectionStatus(true, priceResult.source);
+                    elements.headerApiSource.textContent = priceResult.source;
+                    
+                    // Обновление времени
+                    elements.headerUpdated.textContent = new Date().toLocaleTimeString('ru-RU', {hour12: false});
+                    
+                    // Обновление отображения текущей цены
+                    const currentPriceStr = formatPrice(state.currentPrice);
+                    elements.currentPrice1.textContent = currentPriceStr;
+                    elements.currentPrice2.textContent = currentPriceStr;
+                    elements.currentPrice3.textContent = currentPriceStr;
+                    
+                    // Обновление формы
+                    updateLinkedAmounts();
+                    updateTotalValue();
+                    
+                    // Проверка ордеров
+                    checkAllOrders();
+                    
+                    addToLog(`Цена обновлена: $${formatPrice(state.currentPrice)} (${priceResult.source})`, 'success');
+                } else {
+                    updateConnectionStatus(false, 'Нет соединения');
+                    addToLog(`Не удалось получить цену для ${state.currentSymbol}`, 'error');
                 }
                 
             } catch (error) {
                 console.error('Error in updatePrice:', error);
                 updateConnectionStatus(false, 'Ошибка');
+                addToLog(`Ошибка обновления цены: ${error.message}`, 'error');
             } finally {
                 state.isUpdatingPrice = false;
             }
@@ -1658,13 +1669,22 @@
             elements.statusText.style.color = connected ? 'var(--success)' : 'var(--danger)';
         }
 
+        function updateExchangeButtons() {
+            elements.exchangeButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.exchange === state.currentExchange) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
         function startPriceUpdates() {
             if (state.priceUpdateInterval) {
                 clearInterval(state.priceUpdateInterval);
             }
             
-            // HTTP fallback каждые 5 секунд если WS не работает
-            state.priceUpdateInterval = setInterval(updatePrice, 5000);
+            const interval = parseInt(elements.priceIntervalInput.value) || CONFIG.updateInterval;
+            state.priceUpdateInterval = setInterval(updatePrice, interval);
         }
 
         // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
@@ -2698,15 +2718,8 @@
                 state.currentPrice = 0;
                 state.lastPrice = 0;
                 
-                // Обновляем WebSocket подключение для нового символа
-                if (state.wsConnected) {
-                    connectWebSocket();
-                }
-                
                 updateHeaderDisplay();
                 updateAvailableAmount();
-                
-                // Запрашиваем начальную цену
                 updatePrice();
             }
         }
@@ -2756,14 +2769,15 @@
                 sessionStartTime: state.sessionStartTime,
                 initialTotalValue: state.initialTotalValue,
                 fees: state.fees,
-                totalCommissionPaid: state.totalCommissionPaid
+                totalCommissionPaid: state.totalCommissionPaid,
+                currentExchange: state.currentExchange
             };
-            localStorage.setItem('mexcTradingData', JSON.stringify(saveData));
+            localStorage.setItem('multiExchangeTradingData', JSON.stringify(saveData));
         }
 
         function loadFromLocalStorage() {
             try {
-                const saved = localStorage.getItem('mexcTradingData');
+                const saved = localStorage.getItem('multiExchangeTradingData');
                 if (saved) {
                     const data = JSON.parse(saved);
                     
@@ -2776,6 +2790,7 @@
                     state.initialTotalValue = data.initialTotalValue || 10000;
                     state.fees = data.fees || { ...CONFIG.fees };
                     state.totalCommissionPaid = data.totalCommissionPaid || 0;
+                    state.currentExchange = data.currentExchange || 'tradingview';
                     
                     elements.symbolInput.value = state.currentSymbol;
                     elements.makerFeeInput.value = state.fees.maker;
@@ -2784,6 +2799,7 @@
                     updateHeaderDisplay();
                     updateOrdersDisplay();
                     updateTotalValue();
+                    updateExchangeButtons();
                     
                     addToLog('Данные загружены из localStorage', 'success');
                 }
@@ -2861,7 +2877,7 @@
                 </div>
             `;
             
-            localStorage.removeItem('mexcTradingData');
+            localStorage.removeItem('multiExchangeTradingData');
             addToLog('Все данные очищены', 'info');
         }
 
@@ -2872,6 +2888,15 @@
                     elements.orderTypeButtons.forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     toggleOrderType(btn.dataset.type);
+                });
+            });
+
+            elements.exchangeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.currentExchange = btn.dataset.exchange;
+                    updateExchangeButtons();
+                    addToLog(`Источник цен изменен на: ${state.currentExchange}`, 'info');
+                    updatePrice();
                 });
             });
 
@@ -2982,11 +3007,7 @@
             updateLinkedAmounts();
             updateAvailableAmount();
             
-            // Подключаем WebSocket для реальных цен
-            addToLog('Подключение к MEXC WebSocket...', 'info');
-            connectWebSocket();
-            
-            // Запускаем HTTP fallback обновление
+            // Запускаем обновление цен
             startPriceUpdates();
             
             // Проверяем ордера каждые 500мс
@@ -2994,9 +3015,9 @@
                 checkAllOrders();
             }, 500);
             
-            addToLog('MEXC Trading Simulator запущен', 'success');
-            addToLog('Используется WebSocket MEXC для реальных цен', 'info');
-            addToLog('HTTP обновление как fallback каждые 5 секунд', 'info');
+            addToLog('Multi-Exchange Trading Simulator запущен', 'success');
+            addToLog(`Основной источник: TradingView, резервные: Binance, Bybit, Kraken`, 'info');
+            addToLog('Обновление каждые 3 секунды', 'info');
             
             // Начальный запрос цены
             setTimeout(() => {
