@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Стили остаются без изменений, как в вашем коде */
         :root {
             --primary: #00a3ff;
             --primary-dark: #0088cc;
@@ -1376,7 +1375,7 @@
 
         <div class="form-group">
             <div class="form-label">Интервал обновления цен (мс)</div>
-            <input type="number" class="form-control" id="price-interval" step="100" min="1000" max="10000" value="2000">
+            <input type="number" class="form-control" id="price-interval" step="100" min="100" max="10000" value="100">
         </div>
 
         <button class="btn btn-primary" id="save-balance-btn" style="width: 100%; margin-bottom: 20px;">
@@ -1412,7 +1411,7 @@
     <script>
         // ========== CONFIGURATION ==========
         const CONFIG = {
-            updateInterval: 2000,
+            updateInterval: 100, // Минимальный интервал для реального времени
             maxOrders: 100,
             maxHistory: 500,
             initialBalance: {
@@ -1439,7 +1438,9 @@
                     } catch {
                         return null;
                     }
-                }
+                },
+                timeout: 3000,
+                weight: 1
             },
             'bybit': {
                 name: 'Bybit',
@@ -1456,7 +1457,9 @@
                     } catch {
                         return null;
                     }
-                }
+                },
+                timeout: 3000,
+                weight: 1
             },
             'kraken': {
                 name: 'Kraken',
@@ -1465,18 +1468,14 @@
                 priceApi: 'https://api.kraken.com/0/public/Ticker?pair=',
                 formatSymbol: (symbol) => {
                     const symbolMap = {
-                        'BTCUSDT': 'XXBTZUSD',
-                        'ETHUSDT': 'XETHZUSD',
-                        'SOLUSDT': 'SOLUSD',
-                        'ADAUSDT': 'ADAUSD',
-                        'DOTUSDT': 'DOTUSD',
-                        'BNBUSDT': 'BNBUSD',
-                        'XRPUSDT': 'XRPUSD',
-                        'DOGEUSDT': 'XDGUSD',
-                        'MATICUSDT': 'MATICUSD',
-                        'AVAXUSDT': 'AVAXUSD'
+                        'BTCUSDT': 'XBTUSDT',
+                        'ETHUSDT': 'ETHUSDT',
+                        'BTC/USDT': 'XBTUSDT',
+                        'ETH/USDT': 'ETHUSDT',
+                        'BTC_USDT': 'XBTUSDT',
+                        'ETH_USDT': 'ETHUSDT'
                     };
-                    return symbolMap[symbol] || symbol.replace('USDT', 'USD');
+                    return symbolMap[symbol] || symbol.replace('USDT', 'USD').toUpperCase();
                 },
                 parsePrice: (data) => {
                     try {
@@ -1488,31 +1487,51 @@
                     } catch {
                         return null;
                     }
-                }
+                },
+                timeout: 3000,
+                weight: 1
             },
             'mexc': {
                 name: 'MEXC',
                 enabled: true,
                 priority: 4,
-                priceApi: 'https://api.mexc.com/api/v3/ticker/price?symbol=',
-                // Важное исправление для MEXC
+                // MEXC API endpoints (пробуем разные форматы)
+                endpoints: [
+                    'https://api.mexc.com/api/v3/ticker/price?symbol=', // Формат BTCUSDT
+                    'https://api.mexc.com/api/v3/ticker/price?symbol='  // Для других форматов
+                ],
                 formatSymbol: (symbol) => {
-                    if (symbol.includes('USDT')) {
-                        // MEXC ожидает формат типа BTC_USDT для некоторых пар
-                        return symbol.replace('USDT', '_USDT');
+                    // Пробуем разные форматы для MEXC
+                    const cleanSymbol = symbol.replace('/', '').replace('_', '').toUpperCase();
+                    
+                    // Проверяем популярные пары
+                    const knownPairs = [
+                        'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
+                        'ADAUSDT', 'DOGEUSDT', 'MATICUSDT', 'DOTUSDT', 'SHIBUSDT',
+                        'LTCUSDT', 'TRXUSDT', 'AVAXUSDT', 'LINKUSDT', 'ATOMUSDT'
+                    ];
+                    
+                    if (knownPairs.includes(cleanSymbol)) {
+                        return cleanSymbol;
                     }
-                    return symbol.toUpperCase();
+                    
+                    // Если не нашли, возвращаем очищенный символ
+                    return cleanSymbol;
                 },
                 parsePrice: (data) => {
                     try {
-                        return data && data.price ? parseFloat(data.price) : null;
+                        // MEXC возвращает {"symbol":"BTCUSDT","price":"35000.00"}
+                        if (data && data.price && !data.code) {
+                            const price = parseFloat(data.price);
+                            return price > 0 ? price : null;
+                        }
+                        return null;
                     } catch {
                         return null;
                     }
                 },
-                // Дополнительные настройки для улучшения стабильности
-                fetchTimeout: 4000, // таймаут в мс
-                retryCount: 2 // количество попыток
+                timeout: 3000,
+                weight: 1
             }
         };
 
@@ -1539,8 +1558,9 @@
             pricePrecision: 8,
             fees: { ...CONFIG.fees },
             totalCommissionPaid: 0,
-            // Добавляем таймер для debounce
-            symbolSearchTimeout: null
+            symbolSearchTimeout: null,
+            // Для MEXC сохраняем последние успешные данные
+            lastMexcResponse: null
         };
 
         // ========== DOM ELEMENTS ==========
@@ -1626,41 +1646,54 @@
             }
         }
 
+        // Улучшенная функция для тестирования API
         async function testExchangeAPI(exchangeId) {
             const exchange = EXCHANGES[exchangeId];
             if (!exchange || !exchange.enabled) return false;
             
             try {
-                const testSymbol = 'BTCUSDT';
-                const formattedSymbol = exchange.formatSymbol(testSymbol);
+                const testSymbols = ['BTCUSDT', 'BTC/USDT', 'BTC_USDT'];
+                let success = false;
                 
-                let testUrl = exchange.priceApi + formattedSymbol;
-                
-                // Быстрый таймаут для теста
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-                
-                const response = await fetch(testUrl, { 
-                    method: 'GET',
-                    headers: { 
-                        'Accept': 'application/json'
-                    },
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    updateExchangeStatus(exchangeId, false, `HTTP ${response.status}`);
-                    return false;
+                for (const testSymbol of testSymbols) {
+                    const formattedSymbol = exchange.formatSymbol(testSymbol);
+                    let testUrl = exchange.priceApi;
+                    
+                    if (exchange.endpoints) {
+                        testUrl = exchange.endpoints[0];
+                    }
+                    
+                    testUrl += formattedSymbol + '&_=' + Date.now();
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), exchange.timeout);
+                    
+                    const response = await fetch(testUrl, { 
+                        method: 'GET',
+                        headers: { 
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const price = exchange.parsePrice(data);
+                        
+                        if (price !== null && price > 0) {
+                            success = true;
+                            break;
+                        }
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 }
                 
-                const data = await response.json();
-                const price = exchange.parsePrice(data);
-                
-                const isValid = price !== null && price > 0;
-                updateExchangeStatus(exchangeId, isValid, isValid ? 'OK' : 'Invalid price');
-                return isValid;
+                updateExchangeStatus(exchangeId, success, success ? 'OK' : 'No valid price');
+                return success;
                 
             } catch (error) {
                 console.error(`Error testing ${exchangeId}:`, error);
@@ -1669,86 +1702,167 @@
             }
         }
 
+        // Улучшенная функция для получения цены с биржи
         async function fetchPriceFromExchange(exchangeId, symbol) {
             const exchange = EXCHANGES[exchangeId];
             if (!exchange || !exchange.enabled) return null;
             
-            try {
-                const formattedSymbol = exchange.formatSymbol(symbol);
-                let url = exchange.priceApi + formattedSymbol;
-                
-                // Устанавливаем глобальный timeout для всего запроса
-                const controller = new AbortController();
-                const globalTimeout = setTimeout(() => controller.abort(), 6000);
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: { 
-                        'Accept': 'application/json'
-                    },
-                    signal: controller.signal
-                });
-                
-                clearTimeout(globalTimeout);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+            const symbolFormats = [
+                symbol,
+                symbol.replace('/', '').replace('_', ''),
+                symbol.includes('USDT') ? symbol : symbol + 'USDT'
+            ];
+            
+            for (const symbolFormat of symbolFormats) {
+                try {
+                    const formattedSymbol = exchange.formatSymbol(symbolFormat);
+                    
+                    // Для MEXC пробуем разные endpoints
+                    const endpoints = exchange.endpoints || [exchange.priceApi];
+                    
+                    for (const endpoint of endpoints) {
+                        try {
+                            let url = endpoint + formattedSymbol;
+                            url += (url.includes('?') ? '&' : '?') + '_=' + Date.now();
+                            
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), exchange.timeout);
+                            
+                            const response = await fetch(url, {
+                                method: 'GET',
+                                headers: { 
+                                    'Accept': 'application/json',
+                                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                    'Pragma': 'no-cache'
+                                },
+                                signal: controller.signal
+                            });
+                            
+                            clearTimeout(timeoutId);
+                            
+                            if (!response.ok) {
+                                if (response.status === 429) {
+                                    // Rate limit, немного ждем и пробуем снова
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                    continue;
+                                }
+                                continue;
+                            }
+                            
+                            const data = await response.json();
+                            const price = exchange.parsePrice(data);
+                            
+                            if (price && price > 0) {
+                                // Сохраняем успешный ответ для MEXC
+                                if (exchangeId === 'mexc') {
+                                    state.lastMexcResponse = {
+                                        data: data,
+                                        timestamp: Date.now(),
+                                        symbol: symbolFormat
+                                    };
+                                }
+                                
+                                return {
+                                    price: price,
+                                    exchange: exchangeId,
+                                    source: exchange.name,
+                                    symbol: symbolFormat
+                                };
+                            }
+                            
+                        } catch (innerError) {
+                            console.error(`Error fetching from ${exchangeId} endpoint:`, innerError);
+                            continue;
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error(`Error with symbol format ${symbolFormat} for ${exchangeId}:`, error);
+                    continue;
                 }
-                
-                const data = await response.json();
-                const price = exchange.parsePrice(data);
-                
-                if (price && price > 0) {
-                    return {
-                        price: price,
-                        exchange: exchangeId,
-                        source: exchange.name
-                    };
-                }
-                
-                return null;
-                
-            } catch (error) {
-                console.error(`Error fetching price from ${exchangeId}:`, error);
-                updateExchangeStatus(exchangeId, false, error.name === 'AbortError' ? 'Timeout' : 'Error');
-                return null;
             }
+            
+            return null;
         }
 
+        // Функция для параллельного получения цен со всех бирж
         async function getPriceForSymbol(symbol) {
-            const sortedExchanges = Object.keys(EXCHANGES)
-                .filter(exchangeId => EXCHANGES[exchangeId].enabled)
-                .sort((a, b) => EXCHANGES[a].priority - EXCHANGES[b].priority);
+            const enabledExchanges = Object.keys(EXCHANGES)
+                .filter(exchangeId => EXCHANGES[exchangeId].enabled);
             
-            // Пробуем каждую биржу по очереди
-            for (const exchangeId of sortedExchanges) {
-                const priceResult = await fetchPriceFromExchange(exchangeId, symbol);
-                if (priceResult) {
-                    state.currentExchange = exchangeId;
-                    return priceResult;
+            // Используем Promise.any для получения первого успешного ответа
+            const pricePromises = enabledExchanges.map(async (exchangeId) => {
+                try {
+                    const priceResult = await fetchPriceFromExchange(exchangeId, symbol);
+                    if (priceResult && priceResult.price > 0) {
+                        updateExchangeStatus(exchangeId, true, 'OK');
+                        return {
+                            ...priceResult,
+                            priority: EXCHANGES[exchangeId].priority
+                        };
+                    }
+                    updateExchangeStatus(exchangeId, false, 'No price');
+                } catch (error) {
+                    console.error(`Error fetching from ${exchangeId}:`, error);
+                    updateExchangeStatus(exchangeId, false, 'Error');
                 }
-            }
+                return null;
+            });
             
-            // Если все биржи недоступны, возвращаем null
-            return null;
+            try {
+                // Ждем все промисы, но используем первый успешный
+                const results = await Promise.any(pricePromises.map(p => 
+                    p.then(result => {
+                        if (result) return result;
+                        throw new Error('No price');
+                    })
+                ));
+                
+                return results;
+                
+            } catch (error) {
+                // Если все промисы упали, пробуем получить хотя бы один результат
+                const settledResults = await Promise.allSettled(pricePromises);
+                
+                for (const result of settledResults) {
+                    if (result.status === 'fulfilled' && result.value) {
+                        return result.value;
+                    }
+                }
+                
+                // Если ничего не получили, используем последний успешный ответ MEXC если есть
+                if (state.lastMexcResponse && Date.now() - state.lastMexcResponse.timestamp < 30000) {
+                    const mexcPrice = EXCHANGES.mexc.parsePrice(state.lastMexcResponse.data);
+                    if (mexcPrice && mexcPrice > 0) {
+                        return {
+                            price: mexcPrice,
+                            exchange: 'mexc',
+                            source: 'MEXC (cached)',
+                            symbol: state.lastMexcResponse.symbol
+                        };
+                    }
+                }
+                
+                return null;
+            }
         }
 
         // ========== PRICE UPDATER ==========
         async function updatePrice() {
             if (state.isUpdatingPrice) return;
             
+            const now = Date.now();
+            if (now - state.lastPriceCheck < 50) { // Минимальная задержка между запросами
+                return;
+            }
+            
             state.isUpdatingPrice = true;
+            state.lastPriceCheck = now;
+            
             try {
-                const now = Date.now();
-                if (now - state.lastPriceCheck < 1000) {
-                    state.isUpdatingPrice = false;
-                    return;
-                }
-                state.lastPriceCheck = now;
-                
                 // Показываем статус подключения
                 elements.statusDot.className = 'status-dot connecting';
-                elements.statusText.textContent = 'Подключение...';
+                elements.statusText.textContent = 'Обновление...';
                 elements.statusText.style.color = 'var(--warning)';
                 
                 const priceResult = await getPriceForSymbol(state.currentSymbol);
@@ -1757,6 +1871,7 @@
                     const oldPrice = state.currentPrice;
                     state.currentPrice = priceResult.price;
                     state.lastUpdateTimestamp = new Date();
+                    state.currentExchange = priceResult.exchange;
                     
                     // Calculate price change
                     let changePercent = 0;
@@ -1774,11 +1889,12 @@
                     state.priceHistory.push({
                         timestamp: new Date(),
                         price: state.currentPrice,
-                        exchange: priceResult.exchange
+                        exchange: priceResult.exchange,
+                        source: priceResult.source
                     });
                     
-                    if (state.priceHistory.length > 100) {
-                        state.priceHistory = state.priceHistory.slice(-100);
+                    if (state.priceHistory.length > 1000) {
+                        state.priceHistory = state.priceHistory.slice(-1000);
                     }
                     
                     // Update display
@@ -1793,39 +1909,38 @@
                     elements.currentPrice3.textContent = currentPriceStr;
                     
                     // Check orders
-                    setTimeout(() => {
-                        checkAllOrders();
-                    }, 100);
+                    checkAllOrders();
                     
                 } else {
-                    // Если цены не получены, сбрасываем в 0
                     state.currentPrice = 0;
                     updateConnectionStatus(false, 'Нет соединения');
-                    elements.headerApiSource.textContent = 'Нет данных';
                     elements.headerChange.textContent = '0.00%';
                     elements.headerChange.className = 'change';
+                    elements.headerApiSource.textContent = 'Ошибка';
                     
-                    // Сбрасываем отображение текущих цен
+                    // Обновляем отображение текущих цен
                     elements.currentPrice1.textContent = '0.00';
                     elements.currentPrice2.textContent = '0.00';
                     elements.currentPrice3.textContent = '0.00';
+                    
+                    addToLog(`Не удалось получить цену для ${state.currentSymbol}`, 'error');
                 }
 
             } catch (error) {
                 console.error('Error in updatePrice:', error);
-                // При ошибке сбрасываем цену в 0
                 state.currentPrice = 0;
                 updateConnectionStatus(false, 'Ошибка');
                 elements.headerApiSource.textContent = 'Ошибка';
                 elements.headerChange.textContent = '0.00%';
                 elements.headerChange.className = 'change';
                 
-                // Сбрасываем отображение текущих цен
                 elements.currentPrice1.textContent = '0.00';
                 elements.currentPrice2.textContent = '0.00';
                 elements.currentPrice3.textContent = '0.00';
                 
-                addToLog(`Ошибка получения цены: ${error.message}`, 'error');
+                if (error.message !== 'No price') {
+                    addToLog(`Ошибка получения цены: ${error.message}`, 'error');
+                }
             } finally {
                 state.isUpdatingPrice = false;
             }
@@ -1844,8 +1959,10 @@
             
             const interval = parseInt(elements.priceIntervalInput.value) || CONFIG.updateInterval;
             
+            // Первое обновление сразу
             updatePrice();
             
+            // Затем по интервалу
             state.priceUpdateInterval = setInterval(updatePrice, interval);
             addToLog(`Обновление цен каждые ${interval}мс`, 'success');
         }
@@ -1917,7 +2034,7 @@
             if (symbol.endsWith('USDT')) return symbol.slice(0, -4);
             if (symbol.endsWith('BTC')) return symbol.slice(0, -3);
             if (symbol.endsWith('ETH')) return symbol.slice(0, -3);
-            return symbol;
+            return symbol.replace(/[\/_]/g, '').replace('USDT', '');
         }
 
         function addToLog(message, type = 'info') {
@@ -1992,7 +2109,7 @@
                     }
                     
                     if (shouldExecute) {
-                        executeOrder(order, order.limitPrice, false); // Лимитный ордер - мейкер комиссия
+                        executeOrder(order, order.limitPrice, false);
                         state.orders.splice(i, 1);
                     }
                 }
@@ -2048,7 +2165,7 @@
                         cancelSingleOrder(ocoOrder.id);
                         
                         if (takeProfitOrder) {
-                            executeOrder(takeProfitOrder, takeProfitOrder.limitPrice, false); // Лимитный ордер - мейкер комиссия
+                            executeOrder(takeProfitOrder, takeProfitOrder.limitPrice, false);
                             
                             const index = state.orders.findIndex(o => o.id === takeProfitOrder.id);
                             if (index !== -1) {
@@ -2215,7 +2332,6 @@
             const marketPrice = state.currentPrice || 0;
 
             if (orderType === 'market') {
-                // Для рыночных ордеров используем текущую рыночную цену
                 if (side === 'BUY') {
                     amount = parseFloat(elements.buyAmount.value) || 0;
                     if (!amount || amount <= 0) {
@@ -2244,7 +2360,6 @@
                     amount = quantity * marketPrice;
                 }
             } else {
-                // Для лимитных ордеров
                 if (side === 'BUY') {
                     quantity = parseFloat(elements.buyQuantity.value) || 0;
                     amount = parseFloat(elements.buyAmount.value) || 0;
@@ -2265,7 +2380,6 @@
             }
 
             if (orderType === 'market') {
-                // Рыночный ордер исполняется сразу
                 const order = {
                     id: generateOrderId(),
                     type: 'MARKET',
@@ -2471,7 +2585,7 @@
                     addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
                     addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (продать при падении)`, 'warning');
                 } else {
-                    addToLog(`  Тейк1-профит: $${formatPrice(takeProfitPrice)} (купить при падении)`, 'success');
+                    addToLog(`  Тейк-профит: $${formatPrice(takeProfitPrice)} (купить при падении)`, 'success');
                     addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
                     addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (купить при росте)`, 'warning');
                 }
@@ -2791,13 +2905,10 @@
             document.getElementById('reset-balance-btn').addEventListener('click', resetBalance);
             document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
             
-            // ОБНОВЛЕНО: Добавлен debounce для поля ввода символа
+            // Дебаунс для поля ввода символа
             let symbolInputTimeout = null;
             elements.symbolInput.addEventListener('input', () => {
-                // Очищаем предыдущий таймаут
                 clearTimeout(symbolInputTimeout);
-                
-                // Устанавливаем новый таймаут на 500 мс
                 symbolInputTimeout = setTimeout(() => {
                     updateSymbol();
                 }, 500);
@@ -2805,15 +2916,20 @@
             
             elements.updateSymbolBtn.addEventListener('click', updateSymbol);
             
-            // Обновление комиссии при изменении
             elements.makerFeeInput.addEventListener('change', updateFees);
             elements.takerFeeInput.addEventListener('change', updateFees);
+            
+            elements.priceIntervalInput.addEventListener('change', restartPriceUpdates);
         }
 
         function updateFees() {
             state.fees.maker = parseFloat(elements.makerFeeInput.value) || 0;
             state.fees.taker = parseFloat(elements.takerFeeInput.value) || 0.05;
             addToLog(`Комиссии обновлены: мейкер ${state.fees.maker}%, тейкер ${state.fees.taker}%`, 'info');
+        }
+
+        function restartPriceUpdates() {
+            startPriceUpdates();
         }
 
         // ========== EXCHANGE SELECTOR ==========
@@ -2887,19 +3003,20 @@
             updateLinkedAmounts();
             updateAvailableAmount();
             
-            // Test exchanges in background
+            // Тестируем биржи в фоне
             setTimeout(async () => {
                 await testAllExchanges();
-                updatePrice(); // Try to get real price after testing
+                updatePrice();
             }, 1000);
             
             startPriceUpdates();
             
             setInterval(() => {
                 checkAllOrders();
-            }, 1000);
+            }, 100);
             
             addToLog('Торговый симулятор запущен', 'success');
+            addToLog('Режим реального времени: минимальный интервал 100мс', 'info');
             addToLog('Подключение к биржам:', 'info');
             addToLog('- Binance: основной источник цен', 'info');
             addToLog('- Bybit: резервный источник', 'info');
@@ -2967,7 +3084,6 @@
             const isMarket = orderType === 'market';
             
             if (isMarket) {
-                // Для рыночных ордеров обновляем сумму/количество в реальном времени
                 if (elements.orderSide.value === 'BUY') {
                     const amount = parseFloat(elements.buyAmount.value) || 0;
                     const price = state.currentPrice || 1;
@@ -2988,7 +3104,6 @@
                     }
                 }
             } else {
-                // Для лимитных ордеров
                 if (elements.orderSide.value === 'BUY') {
                     updateBuyQuantityFromAmount();
                 } else {
@@ -3059,7 +3174,6 @@
             const amount = (maxAmount * percent) / 100;
             
             if (orderType === 'market') {
-                // Для рыночных ордеров только сумма
                 elements.buyAmount.value = amount.toFixed(2);
             } else {
                 elements.buyAmount.value = amount.toFixed(2);
@@ -3074,7 +3188,6 @@
             const quantity = (maxQuantity * percent) / 100;
             
             if (orderType === 'market') {
-                // Для рыночных ордеров только количество
                 elements.sellQuantity.value = formatInputPrice(quantity);
             } else {
                 elements.sellQuantity.value = formatInputPrice(quantity);
@@ -3230,6 +3343,7 @@
             state.orderHistory = [];
             state.initialTotalValue = 10000;
             state.totalCommissionPaid = 0;
+            state.lastMexcResponse = null;
             
             updateHeaderDisplay();
             updateOrdersDisplay();
