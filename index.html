@@ -1369,7 +1369,7 @@
                 const baseSymbol = getBaseSymbol(state.currentSymbol);
                 const wsSymbol = baseSymbol.toLowerCase() + 'usdt';
                 
-                // MEXC WebSocket URL
+                // MEXC WebSocket URL v3
                 const wsUrl = `wss://wbs.mexc.com/ws`;
                 state.ws = new WebSocket(wsUrl);
                 
@@ -1378,36 +1378,61 @@
                     state.wsConnected = true;
                     updateConnectionStatus(true, 'MEXC WS');
                     
-                    // Подписываемся на тикер
+                    // Подписываемся на обновления тикера
+                    // Формат для MEXC v3 API
                     const subscribeMsg = {
+                        method: "SUBSCRIPTION",
+                        params: [`spot@public.deals.v3.api@${wsSymbol}`]
+                    };
+                    
+                    console.log('Отправляем подписку:', subscribeMsg);
+                    state.ws.send(JSON.stringify(subscribeMsg));
+                    
+                    // Также подписываемся на мини-тикер для более частых обновлений
+                    const miniTickerMsg = {
                         method: "SUBSCRIPTION",
                         params: [`spot@public.miniTicker.v3.api@${wsSymbol}`]
                     };
                     
-                    state.ws.send(JSON.stringify(subscribeMsg));
+                    setTimeout(() => {
+                        state.ws.send(JSON.stringify(miniTickerMsg));
+                    }, 100);
+                    
                     addToLog('WebSocket подключен к MEXC', 'success');
                 };
                 
                 state.ws.onmessage = function(event) {
                     try {
                         const data = JSON.parse(event.data);
+                        console.log('WebSocket данные:', data);
                         
-                        // Обрабатываем данные от MEXC WebSocket
-                        if (data && data.d && data.d.c) {
-                            // c - это последняя цена
-                            const price = parseFloat(data.d.c);
-                            if (price > 0) {
-                                updatePriceFromWebSocket(price);
-                            }
-                        } else if (data && data.c) {
+                        let price = null;
+                        
+                        // Обрабатываем разные форматы данных от MEXC
+                        if (data && data.c) {
+                            // Формат мини-тикера: {"c":"price", "s":"BTCUSDT", ...}
+                            price = parseFloat(data.c);
+                        } else if (data && data.p) {
+                            // Формат сделок: {"p":"price", "s":"BTCUSDT", ...}
+                            price = parseFloat(data.p);
+                        } else if (data && data.data && data.data.deals && data.data.deals.length > 0) {
+                            // Формат массива сделок
+                            price = parseFloat(data.data.deals[0].p);
+                        } else if (data && data.data && data.data.p) {
                             // Альтернативный формат
-                            const price = parseFloat(data.c);
-                            if (price > 0) {
-                                updatePriceFromWebSocket(price);
+                            price = parseFloat(data.data.p);
+                        }
+                        
+                        if (price && price > 0) {
+                            updatePriceFromWebSocket(price);
+                        } else {
+                            // Если не нашли цену, но есть данные - выводим для отладки
+                            if (Object.keys(data).length > 0) {
+                                console.log('Данные получены, но цена не найдена:', data);
                             }
                         }
                     } catch (e) {
-                        console.log('WebSocket message parse error:', e);
+                        console.log('WebSocket message parse error:', e, event.data);
                     }
                 };
                 
@@ -1473,15 +1498,15 @@
             checkAllOrders();
         }
 
-        // ========== HTTP FALLBACK (если WebSocket не работает) ==========
+        // ========== HTTP FALLBACK ==========
         async function getMexcPriceHTTP() {
             try {
                 const baseSymbol = getBaseSymbol(state.currentSymbol);
                 const symbol = baseSymbol.toUpperCase() + 'USDT';
                 
-                // Используем CORS proxy для обхода ограничений
+                // Используем альтернативный эндпоинт MEXC
                 const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                const apiUrl = `https://www.mexc.com/open/api/v2/market/ticker?symbol=${symbol}`;
+                const apiUrl = `https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`;
                 
                 const response = await fetch(proxyUrl + encodeURIComponent(apiUrl), {
                     method: 'GET',
@@ -1492,16 +1517,14 @@
                 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('HTTP ответ:', data);
                     
-                    if (data && data.data) {
-                        // MEXC API возвращает массив, берем первый элемент
-                        const ticker = Array.isArray(data.data) ? data.data[0] : data.data;
-                        if (ticker && ticker.last) {
-                            return {
-                                price: parseFloat(ticker.last),
-                                source: 'MEXC API'
-                            };
-                        }
+                    if (data && data.price) {
+                        const price = parseFloat(data.price);
+                        return {
+                            price: price,
+                            source: 'MEXC HTTP API'
+                        };
                     }
                 }
             } catch (error) {
@@ -1516,7 +1539,7 @@
             if (state.isUpdatingPrice) return;
             
             const now = Date.now();
-            if (now - state.lastPriceCheck < 800) {
+            if (now - state.lastPriceCheck < 2000) {
                 return;
             }
             
@@ -1524,8 +1547,8 @@
             state.lastPriceCheck = now;
             
             try {
-                // Если WebSocket не подключен, используем HTTP fallback
-                if (!state.wsConnected) {
+                // Если WebSocket не подключен или не получает данные, используем HTTP fallback
+                if (!state.wsConnected || state.currentPrice === 0) {
                     elements.statusDot.className = 'status-dot connecting';
                     elements.statusText.textContent = 'HTTP обновление...';
                     elements.statusText.style.color = 'var(--warning)';
@@ -1564,7 +1587,7 @@
                         
                         addToLog(`Цена обновлена (HTTP): $${formatPrice(state.currentPrice)}`, 'success');
                     } else {
-                        updateConnectionStatus(false, 'Нет соединения');
+                        updateConnectionStatus(false, 'Нет данных');
                         addToLog(`Не удалось получить цену для ${state.currentSymbol}`, 'error');
                     }
                 }
@@ -1591,8 +1614,8 @@
             
             const interval = parseInt(elements.priceIntervalInput.value) || CONFIG.updateInterval;
             
-            // HTTP fallback каждые 2 секунды
-            state.priceUpdateInterval = setInterval(updatePrice, 2000);
+            // HTTP fallback каждые 3 секунды
+            state.priceUpdateInterval = setInterval(updatePrice, 3000);
         }
 
         // ========== UTILITY FUNCTIONS ==========
@@ -2626,9 +2649,10 @@
                 state.currentPrice = 0;
                 
                 // Обновляем WebSocket подключение для нового символа
-                if (state.wsConnected) {
-                    connectWebSocket();
+                if (state.ws) {
+                    state.ws.close();
                 }
+                setTimeout(() => connectWebSocket(), 100);
                 
                 updateHeaderDisplay();
                 updateAvailableAmount();
@@ -2912,7 +2936,7 @@
             
             addToLog('MEXC Trading Simulator запущен', 'success');
             addToLog('Используется WebSocket MEXC для реальных цен', 'info');
-            addToLog('HTTP обновление как fallback каждые 2 секунды', 'info');
+            addToLog('HTTP обновление как fallback каждые 3 секунды', 'info');
         });
 
         // ========== GLOBAL FUNCTIONS ==========
