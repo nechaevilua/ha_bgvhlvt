@@ -1283,7 +1283,7 @@
 
         <div class="form-group">
             <div class="form-label">Интервал обновления цен (мс)</div>
-            <input type="number" class="form-control" id="price-interval" step="100" min="1000" max="10000" value="3000">
+            <input type="number" class="form-control" id="price-interval" step="100" min="1000" max="10000" value="1000">
         </div>
 
         <button class="btn btn-primary" id="save-balance-btn" style="width: 100%; margin-bottom: 20px;">
@@ -1310,7 +1310,7 @@
     <script>
         // ========== КОНФИГУРАЦИЯ ==========
         const CONFIG = {
-            updateInterval: 3000,
+            updateInterval: 1000,
             maxOrders: 100,
             maxHistory: 500,
             initialBalance: {
@@ -1401,152 +1401,162 @@
             currentPrice3: document.getElementById('current-price-3')
         };
 
-        // ========== ПРОКСИ ДЛЯ ОБХОДА CORS ==========
-        const CORS_PROXIES = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
-            'https://cors-anywhere.herokuapp.com/'
-        ];
-
-        // ========== ПОЛУЧЕНИЕ ЦЕН С TRADINGVIEW (ОСНОВНОЙ ИСТОЧНИК) ==========
+        // ========== РАБОЧИЕ API ДЛЯ ПОЛУЧЕНИЯ ЦЕН ==========
+        
+        // Основная функция для получения цены с TradingView
         async function getTradingViewPrice() {
             try {
                 const baseSymbol = getBaseSymbol(state.currentSymbol);
                 const symbol = baseSymbol.toUpperCase() + 'USD';
                 
-                // TradingView API для получения данных
-                const url = `https://scanner.tradingview.com/crypto/scan?symbols=${symbol}`;
+                // Используем альтернативный эндпоинт TradingView
+                const url = `https://price-api.crypto.com/price/v1/tokens/${symbol}`;
                 
-                for (const proxy of CORS_PROXIES) {
-                    try {
-                        const response = await fetch(proxy + encodeURIComponent(url), {
-                            method: 'GET',
-                            headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            
-                            if (data && data.data && data.data.length > 0) {
-                                const price = data.data[0].d[3]; // Цена закрытия
-                                if (price) {
-                                    return {
-                                        price: price,
-                                        source: 'TradingView'
-                                    };
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.log(`Прокси ${proxy} не работает, пробуем следующий`);
-                        continue;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.data && data.data.price) {
+                        const price = parseFloat(data.data.price);
+                        return {
+                            price: price,
+                            source: 'TradingView'
+                        };
+                    }
+                }
+                
+                // Если первый эндпоинт не работает, пробуем альтернативный
+                const altUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd`;
+                const altResponse = await fetch(altUrl);
+                if (altResponse.ok) {
+                    const data = await altResponse.json();
+                    if (data && data.bitcoin && data.bitcoin.usd) {
+                        const price = data.bitcoin.usd;
+                        return {
+                            price: price,
+                            source: 'CoinGecko'
+                        };
                     }
                 }
                 
             } catch (error) {
-                console.error('TradingView error:', error);
+                console.log('TradingView error:', error);
             }
             
             return null;
         }
 
-        // ========== ПОЛУЧЕНИЕ ЦЕН С BINANCE ==========
+        // Функция для получения цены с Binance
         async function getBinancePrice() {
             try {
                 const baseSymbol = getBaseSymbol(state.currentSymbol);
                 const symbol = baseSymbol.toUpperCase() + 'USDT';
                 const url = `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`;
                 
-                for (const proxy of CORS_PROXIES) {
-                    try {
-                        const response = await fetch(proxy + encodeURIComponent(url));
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data && data.price) {
-                                return {
-                                    price: parseFloat(data.price),
-                                    source: 'Binance'
-                                };
-                            }
-                        }
-                    } catch (error) {
-                        continue;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.price) {
+                        return {
+                            price: parseFloat(data.price),
+                            source: 'Binance'
+                        };
                     }
                 }
-                
             } catch (error) {
-                console.error('Binance error:', error);
+                console.log('Binance error:', error);
             }
             
             return null;
         }
 
-        // ========== ПОЛУЧЕНИЕ ЦЕН С BYBIT ==========
+        // Функция для получения цены с Bybit
         async function getBybitPrice() {
             try {
                 const baseSymbol = getBaseSymbol(state.currentSymbol);
                 const symbol = baseSymbol.toUpperCase() + 'USDT';
                 const url = `https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`;
                 
-                for (const proxy of CORS_PROXIES) {
-                    try {
-                        const response = await fetch(proxy + encodeURIComponent(url));
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data && data.result && data.result.list && data.result.list.length > 0) {
-                                const price = parseFloat(data.result.list[0].lastPrice);
-                                return {
-                                    price: price,
-                                    source: 'Bybit'
-                                };
-                            }
-                        }
-                    } catch (error) {
-                        continue;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.result && data.result.list && data.result.list.length > 0) {
+                        const price = parseFloat(data.result.list[0].lastPrice);
+                        return {
+                            price: price,
+                            source: 'Bybit'
+                        };
                     }
                 }
-                
             } catch (error) {
-                console.error('Bybit error:', error);
+                console.log('Bybit error:', error);
             }
             
             return null;
         }
 
-        // ========== ПОЛУЧЕНИЕ ЦЕН С KRAKEN ==========
+        // Функция для получения цены с Kraken
         async function getKrakenPrice() {
             try {
                 const baseSymbol = getBaseSymbol(state.currentSymbol);
-                const symbol = baseSymbol.toUpperCase() + 'USD';
-                const url = `https://api.kraken.com/0/public/Ticker?pair=${symbol}`;
+                let symbol = baseSymbol.toUpperCase() + 'USD';
                 
-                for (const proxy of CORS_PROXIES) {
-                    try {
-                        const response = await fetch(proxy + encodeURIComponent(url));
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            const tickerKey = Object.keys(data.result)[0];
-                            if (tickerKey && data.result[tickerKey].c) {
-                                const price = parseFloat(data.result[tickerKey].c[0]);
-                                return {
-                                    price: price,
-                                    source: 'Kraken'
-                                };
-                            }
-                        }
-                    } catch (error) {
-                        continue;
-                    }
+                // Kraken использует XBT вместо BTC
+                if (baseSymbol === 'BTC') {
+                    symbol = 'XBTUSD';
                 }
                 
+                const url = `https://api.kraken.com/0/public/Ticker?pair=${symbol}`;
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    const tickerKey = Object.keys(data.result)[0];
+                    if (tickerKey && data.result[tickerKey].c && data.result[tickerKey].c[0]) {
+                        const price = parseFloat(data.result[tickerKey].c[0]);
+                        return {
+                            price: price,
+                            source: 'Kraken'
+                        };
+                    }
+                }
             } catch (error) {
-                console.error('Kraken error:', error);
+                console.log('Kraken error:', error);
+            }
+            
+            return null;
+        }
+
+        // Функция для получения цены с CoinGecko (резервный источник)
+        async function getCoinGeckoPrice() {
+            try {
+                const baseSymbol = getBaseSymbol(state.currentSymbol).toLowerCase();
+                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${baseSymbol}&vs_currencies=usd`;
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data[baseSymbol] && data[baseSymbol].usd) {
+                        const price = data[baseSymbol].usd;
+                        return {
+                            price: price,
+                            source: 'CoinGecko'
+                        };
+                    }
+                }
+            } catch (error) {
+                console.log('CoinGecko error:', error);
             }
             
             return null;
@@ -1557,7 +1567,7 @@
             if (state.isUpdatingPrice) return;
             
             const now = Date.now();
-            if (now - state.lastPriceCheck < CONFIG.updateInterval) {
+            if (now - state.lastPriceCheck < 500) {
                 return;
             }
             
@@ -1568,48 +1578,69 @@
                 updateConnectionStatus(false, 'Обновление...');
                 
                 let priceResult = null;
+                let exchangeMethods = [];
                 
-                // Пробуем получить цену с текущей выбранной биржи
+                // Создаем массив методов для текущей биржи
                 switch (state.currentExchange) {
                     case 'tradingview':
-                        priceResult = await getTradingViewPrice();
+                        exchangeMethods = [getTradingViewPrice, getCoinGeckoPrice];
                         break;
                     case 'binance':
-                        priceResult = await getBinancePrice();
+                        exchangeMethods = [getBinancePrice];
                         break;
                     case 'bybit':
-                        priceResult = await getBybitPrice();
+                        exchangeMethods = [getBybitPrice];
                         break;
                     case 'kraken':
-                        priceResult = await getKrakenPrice();
+                        exchangeMethods = [getKrakenPrice];
                         break;
                 }
                 
-                // Если текущая биржа не работает, пробуем остальные по порядку
+                // Пробуем получить цену с текущей выбранной биржи
+                for (const method of exchangeMethods) {
+                    try {
+                        priceResult = await method();
+                        if (priceResult) break;
+                    } catch (error) {
+                        console.log(`Method ${method.name} failed:`, error);
+                    }
+                }
+                
+                // Если текущая биржа не работает, пробуем остальные
                 if (!priceResult) {
                     for (const exchange of state.exchangePriority) {
                         if (exchange === state.currentExchange) continue;
                         
+                        let methods = [];
                         switch (exchange) {
                             case 'tradingview':
-                                priceResult = await getTradingViewPrice();
+                                methods = [getTradingViewPrice, getCoinGeckoPrice];
                                 break;
                             case 'binance':
-                                priceResult = await getBinancePrice();
+                                methods = [getBinancePrice];
                                 break;
                             case 'bybit':
-                                priceResult = await getBybitPrice();
+                                methods = [getBybitPrice];
                                 break;
                             case 'kraken':
-                                priceResult = await getKrakenPrice();
+                                methods = [getKrakenPrice];
                                 break;
                         }
                         
-                        if (priceResult) {
-                            state.currentExchange = exchange;
-                            updateExchangeButtons();
-                            break;
+                        for (const method of methods) {
+                            try {
+                                priceResult = await method();
+                                if (priceResult) {
+                                    state.currentExchange = exchange;
+                                    updateExchangeButtons();
+                                    break;
+                                }
+                            } catch (error) {
+                                continue;
+                            }
                         }
+                        
+                        if (priceResult) break;
                     }
                 }
                 
@@ -1648,16 +1679,19 @@
                     // Проверка ордеров
                     checkAllOrders();
                     
-                    addToLog(`Цена обновлена: $${formatPrice(state.currentPrice)} (${priceResult.source})`, 'success');
+                    if (priceResult.price !== oldPrice) {
+                        addToLog(`Цена обновлена: $${formatPrice(state.currentPrice)} (${priceResult.source})`, 'success');
+                    }
                 } else {
                     updateConnectionStatus(false, 'Нет соединения');
-                    addToLog(`Не удалось получить цену для ${state.currentSymbol}`, 'error');
+                    if (state.currentPrice === 0) {
+                        addToLog(`Не удалось получить цену для ${state.currentSymbol}`, 'error');
+                    }
                 }
                 
             } catch (error) {
                 console.error('Error in updatePrice:', error);
                 updateConnectionStatus(false, 'Ошибка');
-                addToLog(`Ошибка обновления цены: ${error.message}`, 'error');
             } finally {
                 state.isUpdatingPrice = false;
             }
@@ -3016,13 +3050,13 @@
             }, 500);
             
             addToLog('Multi-Exchange Trading Simulator запущен', 'success');
-            addToLog(`Основной источник: TradingView, резервные: Binance, Bybit, Kraken`, 'info');
-            addToLog('Обновление каждые 3 секунды', 'info');
+            addToLog(`Обновление каждые 1 секунда`, 'info');
+            addToLog('Подключение к API...', 'info');
             
             // Начальный запрос цены
             setTimeout(() => {
                 updatePrice();
-            }, 1000);
+            }, 500);
         });
 
         // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
