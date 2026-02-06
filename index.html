@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MEXC Trading Simulator</title>
+    <title>MEXC Trading Simulator Pro</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -78,44 +78,42 @@
             font-size: 14px;
         }
 
-        /* FIXED: Price Info Container */
+        /* Price Info Container */
         .header-price-info {
             text-align: center;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
             padding: 15px;
-            min-width: 220px;
-            max-width: 220px;
+            min-width: 240px;
+            max-width: 240px;
             border: 1px solid var(--dark-border);
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
         }
 
         .header-price-info .symbol {
             font-size: 14px;
             color: var(--text-secondary);
-            margin-bottom: 5px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .header-price-info .price {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 5px;
             transition: color 0.3s;
-            min-height: 28px;
+            min-height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .header-price-info .price.no-data {
-            color: var(--danger);
+        .header-price-info .price.offline {
+            color: var(--warning);
         }
 
         .header-price-info .change {
@@ -126,26 +124,23 @@
 
         .change.positive { color: var(--success); }
         .change.negative { color: var(--danger); }
-        .change.no-data { color: var(--text-muted); }
+        .change.offline { color: var(--warning); }
 
-        .header-updated {
-            font-size: 10px;
+        .price-source {
+            font-size: 9px;
             color: var(--text-muted);
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
-        /* Connection Status - Compact */
         .connection-status {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 11px;
-            padding: 3px 6px;
+            padding: 3px 8px;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
-            min-width: auto;
             justify-content: center;
-            margin-top: 5px;
         }
 
         .status-dot {
@@ -161,9 +156,9 @@
             animation: pulse 1s infinite;
         }
 
-        .status-dot.connecting {
+        .status-dot.simulating {
             background: var(--warning);
-            animation: pulse 0.5s infinite;
+            animation: pulse 0.8s infinite;
         }
 
         @keyframes pulse {
@@ -172,49 +167,21 @@
             100% { opacity: 1; transform: scale(1); }
         }
 
-        /* API Method Selector - Compact */
-        .api-method-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
-            margin-top: 5px;
-        }
-
-        .api-method-btn {
-            padding: 4px 6px;
-            border: 1px solid var(--dark-border);
-            background: rgba(255, 255, 255, 0.03);
-            color: var(--text-secondary);
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 9px;
-            font-weight: 500;
-            transition: all 0.2s;
-            text-align: center;
-            white-space: nowrap;
-        }
-
-        .api-method-btn.active {
-            border-color: var(--primary);
-            background: rgba(26, 115, 232, 0.1);
-            color: var(--primary);
-        }
-
-        /* Symbol Quick Select - Compact */
+        /* Symbol Quick Select */
         .symbol-quick-select {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 3px;
-            margin-top: 5px;
+            gap: 4px;
+            margin-top: 8px;
         }
 
         .quick-symbol-btn {
-            padding: 2px 4px;
+            padding: 3px 5px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--dark-border);
             border-radius: 3px;
             color: var(--text-secondary);
-            font-size: 9px;
+            font-size: 10px;
             cursor: pointer;
             text-align: center;
             transition: all 0.2s;
@@ -427,8 +394,7 @@
         .log-message.error { color: var(--danger); }
         .log-message.info { color: var(--text-secondary); }
         .log-message.warning { color: var(--warning); }
-        .log-message.websocket { color: #00d4ff; }
-        .log-message.debug { color: #aa00ff; }
+        .log-message.api { color: #00d4ff; }
 
         /* Status Badges */
         .status-badge, .side-badge, .type-badge {
@@ -876,19 +842,6 @@
             scrollbar-color: var(--primary) rgba(255, 255, 255, 0.05);
         }
 
-        /* WebSocket Status */
-        .websocket-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            background: rgba(0, 212, 255, 0.1);
-            color: #00d4ff;
-            margin-left: 8px;
-        }
-
         /* API Stats */
         .api-stats {
             display: flex;
@@ -912,6 +865,7 @@
             font-size: 11px;
             max-height: 150px;
             overflow-y: auto;
+            display: none;
         }
 
         .debug-entry {
@@ -934,6 +888,19 @@
 
         .test-connection-btn:hover {
             background: rgba(255, 165, 2, 0.2);
+        }
+
+        /* Price Simulation Indicator */
+        .simulation-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            background: rgba(255, 165, 2, 0.1);
+            color: var(--warning);
+            margin-left: 8px;
         }
 
         /* Responsive */
@@ -993,10 +960,6 @@
                 grid-template-columns: 1fr;
             }
             
-            .api-method-selector {
-                grid-template-columns: 1fr 1fr;
-            }
-            
             .symbol-quick-select {
                 grid-template-columns: repeat(4, 1fr);
             }
@@ -1009,24 +972,18 @@
         <div class="header">
             <div class="header-top">
                 <div class="header-title">
-                    <h1><i class="fas fa-chart-line"></i> MEXC Trading Simulator</h1>
-                    <p>Торговый симулятор с реальными ценами MEXC</p>
+                    <h1><i class="fas fa-chart-line"></i> MEXC Pro Trading Simulator</h1>
+                    <p>Прямое подключение через API MEXC</p>
                 </div>
                 
                 <div class="header-price-info">
                     <div class="symbol" id="header-symbol">BTC/USDT</div>
-                    <div class="price no-data" id="header-price">$0.00</div>
-                    <div class="change no-data" id="header-change">0.00%</div>
-                    <div class="header-updated" id="header-updated">--:--:--</div>
+                    <div class="price offline" id="header-price">$0.00</div>
+                    <div class="change offline" id="header-change">0.00%</div>
+                    <div class="price-source" id="price-source">Подключение...</div>
                     <div class="connection-status">
                         <span class="status-dot" id="status-dot"></span>
-                        <span id="status-text">Загрузка...</span>
-                    </div>
-                    <div class="api-method-selector">
-                        <button class="api-method-btn active" data-method="direct">Прямой запрос</button>
-                        <button class="api-method-btn" data-method="proxy">Через прокси</button>
-                        <button class="api-method-btn" data-method="websocket">WebSocket</button>
-                        <button class="api-method-btn" data-method="test">Тест соединения</button>
+                        <span id="status-text">Подключение к API...</span>
                     </div>
                     <div class="symbol-quick-select">
                         <button class="quick-symbol-btn" data-symbol="BTCUSDT">BTC</button>
@@ -1064,8 +1021,8 @@
                     <div class="label">API Статистика</div>
                     <div class="value" id="header-api-stats">0 запросов</div>
                     <div class="sub-value">
-                        <span id="header-api-method">Прямой запрос</span>
-                        <span id="header-response-time" style="color: var(--success);">0ms</span>
+                        <span>Режим: <span id="header-api-mode">Онлайн</span></span>
+                        <span id="header-response-time" style="color: var(--success); margin-left: 8px;">0ms</span>
                     </div>
                 </div>
             </div>
@@ -1083,11 +1040,15 @@
                             <div class="api-stats">
                                 <div class="api-stat">
                                     <i class="fas fa-exchange-alt"></i>
-                                    <span id="ws-status">WS: Отключен</span>
+                                    <span id="price-updates">Обновлений: 0</span>
                                 </div>
                                 <div class="api-stat">
                                     <i class="fas fa-bolt"></i>
                                     <span id="latency">Задержка: -</span>
+                                </div>
+                                <div class="api-stat">
+                                    <i class="fas fa-sync"></i>
+                                    <span id="update-rate">Частота: 1с</span>
                                 </div>
                             </div>
                         </div>
@@ -1160,19 +1121,24 @@
                     <div class="card-header">
                         <div class="card-title">
                             <i class="fas fa-terminal"></i> Лог исполнения
-                            <button class="test-connection-btn" id="test-connection-btn">
-                                <i class="fas fa-wifi"></i> Тест соединения
-                            </button>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="test-connection-btn" id="force-update-btn">
+                                    <i class="fas fa-sync-alt"></i> Обновить
+                                </button>
+                                <button class="test-connection-btn" id="toggle-simulation-btn">
+                                    <i class="fas fa-toggle-on"></i> Симуляция
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
                         <div class="log-scroll" id="execution-log">
                             <div class="log-item">
                                 <div class="log-time">--:--:--</div>
-                                <div class="log-message info">Система запущена. Подключение к MEXC...</div>
+                                <div class="log-message info">Запуск MEXC Pro Trading Simulator...</div>
                             </div>
                         </div>
-                        <div class="debug-panel" id="debug-panel" style="display: none;">
+                        <div class="debug-panel" id="debug-panel">
                             <!-- Debug messages will appear here -->
                         </div>
                     </div>
@@ -1408,6 +1374,16 @@
         </div>
 
         <div class="form-group">
+            <div class="form-label">Ваш API Key MEXC</div>
+            <input type="text" class="form-control" id="api-key" value="mx0vgl5BkOcXj0oQUu" readonly>
+        </div>
+
+        <div class="form-group">
+            <div class="form-label">Ваш Secret Key MEXC</div>
+            <input type="password" class="form-control" id="secret-key" value="7c4ca1bdf9fd44deb4df35295be6f04c" readonly>
+        </div>
+
+        <div class="form-group">
             <div class="form-label">Начальный баланс USDT</div>
             <input type="number" class="form-control" id="initial-usdt" step="0.01" value="10000">
         </div>
@@ -1431,26 +1407,22 @@
         </div>
 
         <div class="form-group">
-            <div class="form-label">Интервал обновления (мс)</div>
-            <input type="number" class="form-control" id="price-interval" step="100" min="500" max="5000" value="1000">
+            <div class="form-label">Интервал обновления цен (мс)</div>
+            <input type="range" class="slider" id="price-interval-slider" min="500" max="5000" step="100" value="1000">
+            <div class="slider-labels">
+                <span>500ms</span>
+                <span id="interval-value">1000ms</span>
+                <span>5000ms</span>
+            </div>
         </div>
 
         <div class="form-group">
-            <div class="form-label">Прокси для обхода блокировок</div>
-            <select class="form-control" id="proxy-select">
-                <option value="none">Без прокси (прямое соединение)</option>
-                <option value="allorigins" selected>allorigins.win</option>
-                <option value="corsproxy">corsproxy.io</option>
-                <option value="codetabs">codetabs.com</option>
-                <option value="thingproxy">thingproxy.freeboard.io</option>
-                <option value="corsanywhere">cors-anywhere.herokuapp.com</option>
-                <option value="custom">Свой прокси</option>
+            <div class="form-label">Режим симуляции цен</div>
+            <select class="form-control" id="simulation-mode">
+                <option value="smart">Умный (включается при обрывах)</option>
+                <option value="always">Всегда включен</option>
+                <option value="never">Никогда не включать</option>
             </select>
-        </div>
-
-        <div class="form-group" id="custom-proxy-group" style="display: none;">
-            <div class="form-label">URL вашего прокси</div>
-            <input type="text" class="form-control" id="custom-proxy-url" placeholder="https://ваш-прокси.com/?url=">
         </div>
 
         <div class="form-group">
@@ -1478,6 +1450,18 @@
                 </button>
             </div>
         </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border-radius: 8px; padding: 15px; margin-top: 20px;">
+            <div class="card-title" style="margin-bottom: 10px; font-size: 14px;">
+                <i class="fas fa-info-circle"></i> Статус API
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary);">
+                <div>API Key: <span style="color: var(--success);">Активен</span></div>
+                <div>Последнее обновление: <span id="api-last-update">-</span></div>
+                <div>Успешных запросов: <span id="api-success-count">0</span></div>
+                <div>Ошибок: <span id="api-error-count">0</span></div>
+            </div>
+        </div>
     </div>
 
     <div class="settings-overlay" id="settings-overlay"></div>
@@ -1485,73 +1469,83 @@
     <script>
         // ========== КОНФИГУРАЦИЯ MEXC API ==========
         const MEXC_CONFIG = {
-            // Основные API endpoints MEXC
-            apiEndpoints: [
-                'https://api.mexc.com',
-                'https://www.mexc.com'
-            ],
-            // Популярные символы на MEXC
-            popularSymbols: [
-                'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT',
-                'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'DOTUSDT'
-            ],
-            updateInterval: 2000,
-            maxOrders: 100,
-            maxHistory: 500,
-            initialBalance: {
-                USDT: 10000,
-                BTC: 0
-            },
-            fees: {
-                maker: 0.0000,
-                taker: 0.0500
+            apiKey: 'mx0vgl5BkOcXj0oQUu',
+            secretKey: '7c4ca1bdf9fd44deb4df35295be6f04c',
+            baseUrl: 'https://api.mexc.com',
+            priceUpdateInterval: 1000,
+            priceCacheTime: 30000, // 30 секунд кеш
+            maxStaleTime: 10000,   // 10 секунд без обновлений = stale
+            simulationVolatility: 0.0002, // 0.02% волатильность при симуляции
+            fallbackPrices: {
+                'BTCUSDT': 45000,
+                'ETHUSDT': 2500,
+                'BNBUSDT': 300,
+                'SOLUSDT': 100,
+                'XRPUSDT': 0.5,
+                'ADAUSDT': 0.45,
+                'DOGEUSDT': 0.08,
+                'DOTUSDT': 7
             }
         };
 
-        // ========== УПРАВЛЕНИЕ СОСТОЯНИЕМ ==========
+        // ========== СОСТОЯНИЕ ПРИЛОЖЕНИЯ ==========
         const state = {
+            // Текущие данные
             currentSymbol: 'BTCUSDT',
             currentPrice: 0,
-            lastPrice: 0,
+            lastValidPrice: 0,
+            priceHistory: [],
+            
+            // Ордера
             orders: [],
             pendingOrders: [],
             orderHistory: [],
-            balance: JSON.parse(JSON.stringify(MEXC_CONFIG.initialBalance)),
-            executionLog: [],
+            
+            // Баланс
+            balance: { USDT: 10000, BTC: 0 },
             initialTotalValue: 10000,
-            sessionStartTime: new Date(),
-            lastUpdateTimestamp: null,
-            priceUpdateInterval: null,
-            isUpdatingPrice: false,
-            lastPriceCheck: 0,
-            pricePrecision: 8,
-            fees: { ...MEXC_CONFIG.fees },
             totalCommissionPaid: 0,
-            apiMethod: 'proxy',
-            proxyType: 'allorigins',
-            wsConnection: null,
-            wsConnected: false,
+            
+            // Статистика
             apiStats: {
-                requests: 0,
-                successes: 0,
-                errors: 0,
-                avgResponseTime: 0,
-                lastResponseTime: 0
+                totalRequests: 0,
+                successfulRequests: 0,
+                failedRequests: 0,
+                lastResponseTime: 0,
+                lastUpdateTime: null,
+                consecutiveErrors: 0
             },
+            
+            // Настройки
+            fees: { maker: 0.0000, taker: 0.0500 },
+            simulationMode: 'smart', // smart, always, never
             debugMode: false,
-            connectionTestResults: [],
-            lastWorkingMethod: null,
-            lastWorkingProxy: null
+            updateInterval: 1000,
+            
+            // Состояние подключения
+            isOnline: false,
+            isSimulating: false,
+            lastSuccessfulPrice: null,
+            priceCache: {
+                value: 0,
+                timestamp: 0,
+                source: 'none'
+            },
+            
+            // Интервалы
+            priceUpdateInterval: null,
+            orderCheckInterval: null
         };
 
         // ========== DOM ЭЛЕМЕНТЫ ==========
         const elements = {
+            // Header
             statusDot: document.getElementById('status-dot'),
             statusText: document.getElementById('status-text'),
             headerSymbol: document.getElementById('header-symbol'),
             headerPrice: document.getElementById('header-price'),
             headerChange: document.getElementById('header-change'),
-            headerUpdated: document.getElementById('header-updated'),
+            priceSource: document.getElementById('price-source'),
             headerBalanceUsdt: document.getElementById('header-balance-usdt'),
             headerBalanceCrypto: document.getElementById('header-balance-crypto'),
             headerCryptoLabel: document.getElementById('header-crypto-label'),
@@ -1559,8 +1553,10 @@
             headerTotalValue: document.getElementById('header-total-value'),
             headerTotalChange: document.getElementById('header-total-change'),
             headerApiStats: document.getElementById('header-api-stats'),
-            headerApiMethod: document.getElementById('header-api-method'),
+            headerApiMode: document.getElementById('header-api-mode'),
             headerResponseTime: document.getElementById('header-response-time'),
+            
+            // Trading Form
             symbolInput: document.getElementById('symbol-input'),
             updateSymbolBtn: document.getElementById('update-symbol-btn'),
             orderSide: document.getElementById('order-side'),
@@ -1582,31 +1578,52 @@
             commissionAmount: document.getElementById('commission-amount'),
             placeOrderBtn: document.getElementById('place-order-btn'),
             cancelAllBtn: document.getElementById('cancel-all-btn'),
+            
+            // Order type fields
             marketOrderFields: document.getElementById('market-order-fields'),
             limitOrderFields: document.getElementById('limit-order-fields'),
             stopLimitFields: document.getElementById('stop-limit-fields'),
             ocoFields: document.getElementById('oco-fields'),
+            
+            // Order type buttons
             orderTypeButtons: document.querySelectorAll('.order-type-btn'),
-            apiMethodButtons: document.querySelectorAll('.api-method-btn'),
-            settingsToggle: document.getElementById('settings-toggle'),
-            settingsPanel: document.getElementById('settings-panel'),
-            settingsOverlay: document.getElementById('settings-overlay'),
-            priceIntervalInput: document.getElementById('price-interval'),
-            makerFeeInput: document.getElementById('maker-fee'),
-            takerFeeInput: document.getElementById('taker-fee'),
-            marketLabel: document.getElementById('market-label'),
-            marketAvailable: document.getElementById('market-available'),
+            
+            // Current prices
             currentPrice1: document.getElementById('current-price'),
             currentPrice2: document.getElementById('current-price-2'),
             currentPrice3: document.getElementById('current-price-3'),
-            wsStatus: document.getElementById('ws-status'),
+            marketAvailable: document.getElementById('market-available'),
+            
+            // Stats
+            priceUpdates: document.getElementById('price-updates'),
             latency: document.getElementById('latency'),
-            debugPanel: document.getElementById('debug-panel'),
-            testConnectionBtn: document.getElementById('test-connection-btn'),
-            proxySelect: document.getElementById('proxy-select'),
-            customProxyGroup: document.getElementById('custom-proxy-group'),
-            customProxyUrl: document.getElementById('custom-proxy-url'),
+            updateRate: document.getElementById('update-rate'),
+            activeOrdersCount: document.getElementById('active-orders-count'),
+            historyOrdersCount: document.getElementById('history-orders-count'),
+            
+            // Settings
+            settingsToggle: document.getElementById('settings-toggle'),
+            settingsPanel: document.getElementById('settings-panel'),
+            settingsOverlay: document.getElementById('settings-overlay'),
+            apiKeyInput: document.getElementById('api-key'),
+            secretKeyInput: document.getElementById('secret-key'),
+            priceIntervalSlider: document.getElementById('price-interval-slider'),
+            intervalValue: document.getElementById('interval-value'),
+            simulationMode: document.getElementById('simulation-mode'),
             debugMode: document.getElementById('debug-mode'),
+            makerFeeInput: document.getElementById('maker-fee'),
+            takerFeeInput: document.getElementById('taker-fee'),
+            
+            // API Status
+            apiLastUpdate: document.getElementById('api-last-update'),
+            apiSuccessCount: document.getElementById('api-success-count'),
+            apiErrorCount: document.getElementById('api-error-count'),
+            
+            // Control buttons
+            forceUpdateBtn: document.getElementById('force-update-btn'),
+            toggleSimulationBtn: document.getElementById('toggle-simulation-btn'),
+            
+            // Quick symbols
             quickSymbolButtons: document.querySelectorAll('.quick-symbol-btn')
         };
 
@@ -1647,10 +1664,7 @@
         }
 
         function getBaseSymbol(symbol) {
-            if (symbol.endsWith('USDT')) return symbol.slice(0, -4);
-            if (symbol.endsWith('BTC')) return symbol.slice(0, -3);
-            if (symbol.endsWith('ETH')) return symbol.slice(0, -3);
-            return symbol.replace(/[\/_]/g, '').replace('USDT', '');
+            return symbol.replace('USDT', '');
         }
 
         function addToLog(message, type = 'info') {
@@ -1690,430 +1704,269 @@
             }
         }
 
-        function updateApiStats(responseTime, success = true) {
-            state.apiStats.requests++;
-            state.apiStats.lastResponseTime = responseTime;
-            
-            if (success) {
-                state.apiStats.successes++;
+        function updateConnectionStatus(connected, source = '') {
+            if (connected) {
+                elements.statusDot.className = 'status-dot connected';
+                elements.statusText.textContent = `Онлайн (${source})`;
+                elements.statusText.style.color = 'var(--success)';
+                elements.headerPrice.className = 'price';
+                elements.headerChange.className = state.currentPrice > state.lastValidPrice ? 'change positive' : 'change negative';
+            } else if (state.isSimulating) {
+                elements.statusDot.className = 'status-dot simulating';
+                elements.statusText.textContent = 'Симуляция';
+                elements.statusText.style.color = 'var(--warning)';
+                elements.headerPrice.className = 'price offline';
+                elements.headerChange.className = 'change offline';
             } else {
-                state.apiStats.errors++;
+                elements.statusDot.className = 'status-dot';
+                elements.statusText.textContent = 'Оффлайн';
+                elements.statusText.style.color = 'var(--danger)';
+                elements.headerPrice.className = 'price offline';
+                elements.headerChange.className = 'change offline';
             }
-            
-            const totalRequests = state.apiStats.requests;
-            const totalTime = state.apiStats.avgResponseTime * (totalRequests - 1) + responseTime;
-            state.apiStats.avgResponseTime = totalTime / totalRequests;
-            
-            elements.headerApiStats.textContent = `${state.apiStats.requests} запросов (${state.apiStats.successes}/${state.apiStats.errors})`;
-            elements.headerResponseTime.textContent = `${responseTime}ms`;
-            elements.latency.textContent = `Задержка: ${responseTime}ms`;
         }
 
-        function updateConnectionStatus(connected, message = '') {
-            elements.statusDot.className = `status-dot ${connected ? 'connected' : ''}`;
-            elements.statusText.textContent = connected ? message : message || 'Нет данных';
-            elements.statusText.style.color = connected ? 'var(--success)' : 'var(--danger)';
-        }
-
-        // ========== ОСНОВНЫЕ API ФУНКЦИИ ==========
-        async function getMexcPrice(symbol = null) {
+        // ========== MEXC API ФУНКЦИИ ==========
+        async function getMexcPrice(symbol) {
             const startTime = Date.now();
-            const targetSymbol = symbol || state.currentSymbol;
+            state.apiStats.totalRequests++;
             
             try {
-                let url;
-                let methodName;
+                addDebugLog(`Запрос цены для ${symbol}...`);
                 
-                if (state.apiMethod === 'direct') {
-                    // Прямое подключение (будет работать только если MEXC разрешает CORS)
-                    url = `https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`;
-                    methodName = 'Прямой запрос';
-                } else if (state.apiMethod === 'proxy') {
-                    // Подключение через прокси (работает везде)
-                    const proxy = state.proxyType;
-                    
-                    let proxyUrl;
-                    const encodedUrl = encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`);
-                    
-                    switch(proxy) {
-                        case 'allorigins':
-                            proxyUrl = `https://api.allorigins.win/get?url=${encodedUrl}`;
-                            break;
-                        case 'corsproxy':
-                            proxyUrl = `https://corsproxy.io/?${encodedUrl}`;
-                            break;
-                        case 'codetabs':
-                            proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`;
-                            break;
-                        case 'thingproxy':
-                            proxyUrl = `https://thingproxy.freeboard.io/fetch/${encodedUrl}`;
-                            break;
-                        case 'corsanywhere':
-                            proxyUrl = `https://cors-anywhere.herokuapp.com/${encodedUrl}`;
-                            break;
-                        case 'custom':
-                            proxyUrl = elements.customProxyUrl.value ? `${elements.customProxyUrl.value}${encodedUrl}` : null;
-                            break;
-                        default:
-                            proxyUrl = `https://api.allorigins.win/get?url=${encodedUrl}`;
-                    }
-                    
-                    if (!proxyUrl) {
-                        throw new Error('Не указан URL прокси');
-                    }
-                    
-                    url = proxyUrl;
-                    methodName = `Прокси (${proxy})`;
-                } else if (state.apiMethod === 'test') {
-                    // Режим теста - используем fallback методы
-                    url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`)}`;
-                    methodName = 'Тест соединения';
-                }
-                
-                addDebugLog(`Запрос ${targetSymbol}: ${url}`);
-                
-                const response = await fetch(url, {
+                const response = await fetch(`${MEXC_CONFIG.baseUrl}/api/v3/ticker/price?symbol=${symbol}`, {
                     method: 'GET',
                     headers: {
-                        'Accept': 'application/json'
+                        'X-MEXC-APIKEY': MEXC_CONFIG.apiKey,
+                        'Content-Type': 'application/json'
                     },
-                    signal: AbortSignal.timeout(10000)
+                    signal: AbortSignal.timeout(3000)
                 });
                 
                 const responseTime = Date.now() - startTime;
-                addDebugLog(`Ответ ${targetSymbol}: ${response.status}, время: ${responseTime}ms`);
+                state.apiStats.lastResponseTime = responseTime;
+                elements.latency.textContent = `Задержка: ${responseTime}ms`;
+                
+                addDebugLog(`Ответ получен: ${response.status} (${responseTime}ms)`);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                let data;
-                if (state.proxyType === 'allorigins' || state.apiMethod === 'test') {
-                    const result = await response.json();
-                    data = JSON.parse(result.contents);
-                } else {
-                    data = await response.json();
-                }
+                const data = await response.json();
                 
-                addDebugLog(`Данные ${targetSymbol}: ${JSON.stringify(data).substring(0, 100)}...`);
-                
-                if (data && data.price) {
-                    updateApiStats(responseTime, true);
-                    return {
-                        price: parseFloat(data.price),
-                        source: `${methodName} (${responseTime}ms)`,
-                        symbol: targetSymbol
-                    };
-                } else {
+                if (!data || !data.price) {
                     throw new Error('Неверный формат ответа');
                 }
+                
+                const price = parseFloat(data.price);
+                
+                // Обновляем статистику
+                state.apiStats.successfulRequests++;
+                state.apiStats.consecutiveErrors = 0;
+                state.apiStats.lastUpdateTime = new Date();
+                
+                // Обновляем UI
+                elements.apiSuccessCount.textContent = state.apiStats.successfulRequests;
+                elements.apiLastUpdate.textContent = new Date().toLocaleTimeString('ru-RU', {hour12: false});
+                elements.headerResponseTime.textContent = `${responseTime}ms`;
+                
+                addDebugLog(`Цена получена: $${price}`);
+                
+                return {
+                    success: true,
+                    price: price,
+                    responseTime: responseTime,
+                    timestamp: Date.now()
+                };
+                
             } catch (error) {
                 const responseTime = Date.now() - startTime;
-                updateApiStats(responseTime, false);
-                addDebugLog(`Ошибка ${targetSymbol}: ${error.message}`);
-                console.log(`MEXC API error for ${targetSymbol}:`, error.message);
-                return null;
-            }
-        }
-
-        // Функция тестирования конкретного символа
-        async function testSymbolConnection(symbol) {
-            const startTime = Date.now();
-            
-            try {
-                // Используем allorigins как самый надежный прокси
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`;
+                state.apiStats.failedRequests++;
+                state.apiStats.consecutiveErrors++;
+                state.apiStats.lastResponseTime = responseTime;
                 
-                const response = await fetch(proxyUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    signal: AbortSignal.timeout(5000)
-                });
+                elements.apiErrorCount.textContent = state.apiStats.failedRequests;
+                elements.latency.textContent = `Задержка: ${responseTime}ms`;
                 
-                const responseTime = Date.now() - startTime;
+                addDebugLog(`Ошибка получения цены: ${error.message}`);
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    const data = JSON.parse(result.contents);
-                    
-                    if (data && data.price) {
-                        return {
-                            success: true,
-                            price: parseFloat(data.price),
-                            time: responseTime,
-                            symbol: symbol
-                        };
-                    }
-                }
-            } catch (error) {
-                console.log(`Test error for ${symbol}:`, error.message);
-            }
-            
-            return {
-                success: false,
-                price: 0,
-                time: Date.now() - startTime,
-                symbol: symbol
-            };
-        }
-
-        // ========== ПРОВЕРКА ПОДКЛЮЧЕНИЯ ==========
-        async function testConnection() {
-            addToLog('Запуск теста соединения с MEXC...', 'info');
-            
-            const testResults = [];
-            const symbolsToTest = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'];
-            
-            // Тест через allorigins.win (самый надежный)
-            try {
-                addDebugLog('Тест: Подключение через allorigins.win');
-                const startTime = Date.now();
-                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=BTCUSDT`)}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                const responseTime = Date.now() - startTime;
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    const data = JSON.parse(result.contents);
-                    testResults.push({
-                        method: 'Прокси allorigins.win',
-                        status: 'Успешно',
-                        time: responseTime,
-                        price: data.price,
-                        proxy: 'allorigins'
-                    });
-                    addToLog(`✓ allorigins.win: ${responseTime}ms, цена BTC: $${data.price}`, 'success');
-                    
-                    // Сохраняем рабочий метод
-                    state.lastWorkingMethod = 'proxy';
-                    state.lastWorkingProxy = 'allorigins';
-                    state.proxyType = 'allorigins';
-                    elements.proxySelect.value = 'allorigins';
-                    
-                    // Тестируем другие символы
-                    for (const symbol of symbolsToTest.slice(1)) {
-                        const symbolTest = await testSymbolConnection(symbol);
-                        if (symbolTest.success) {
-                            addToLog(`✓ ${symbol}: $${symbolTest.price} (${symbolTest.time}ms)`, 'success');
-                        } else {
-                            addToLog(`✗ ${symbol}: не удалось получить цену`, 'warning');
-                        }
-                    }
-                } else {
-                    testResults.push({
-                        method: 'Прокси allorigins.win',
-                        status: 'Ошибка',
-                        time: responseTime,
-                        error: `HTTP ${response.status}`,
-                        proxy: 'allorigins'
-                    });
-                    addToLog(`✗ allorigins.win: HTTP ${response.status}`, 'error');
-                }
-            } catch (error) {
-                testResults.push({
-                    method: 'Прокси allorigins.win',
-                    status: 'Ошибка',
-                    time: 0,
+                return {
+                    success: false,
                     error: error.message,
-                    proxy: 'allorigins'
-                });
-                addToLog(`✗ allorigins.win: ${error.message}`, 'error');
+                    responseTime: responseTime,
+                    timestamp: Date.now()
+                };
             }
-            
-            // Анализ результатов
-            state.connectionTestResults = testResults;
-            const successfulTests = testResults.filter(t => t.status === 'Успешно');
-            
-            if (successfulTests.length > 0) {
-                // Выбираем самый быстрый метод
-                const fastestMethod = successfulTests.reduce((fastest, current) => 
-                    current.time < fastest.time ? current : fastest
-                );
-                
-                addToLog(`✅ Тест завершен. Найден рабочий метод: ${fastestMethod.method} (${fastestMethod.time}ms)`, 'success');
-                
-                // Автоматически переключаемся на рабочий метод
-                switchApiMethod('proxy');
-                state.proxyType = fastestMethod.proxy;
-                
-                // Обновляем текущую цену
-                if (fastestMethod.price) {
-                    state.currentPrice = parseFloat(fastestMethod.price);
-                    updatePriceDisplay(fastestMethod.price, 0, fastestMethod.method);
-                    
-                    // Обновляем UI для текущего символа
-                    updateAvailableAmount();
-                    updateLinkedAmounts();
-                }
-                
-                // Запускаем обновление цен
-                startPriceUpdates();
-                
-            } else {
-                addToLog('❌ Все методы подключения не сработали. Проверьте интернет-соединение.', 'error');
-                updateConnectionStatus(false, 'Нет соединения');
-            }
-            
-            return testResults;
         }
 
-        // ========== ОБНОВЛЕНИЕ ЦЕН ==========
+        // ========== СИСТЕМА ОБНОВЛЕНИЯ ЦЕН ==========
+        let lastPriceUpdate = 0;
+        let isUpdatingPrice = false;
+
         async function updatePrice() {
-            if (state.isUpdatingPrice) return;
-            
             const now = Date.now();
-            if (now - state.lastPriceCheck < 500) {
+            
+            // Предотвращаем слишком частые обновления
+            if (isUpdatingPrice || now - lastPriceUpdate < 300) {
                 return;
             }
             
-            state.isUpdatingPrice = true;
-            state.lastPriceCheck = now;
+            isUpdatingPrice = true;
+            lastPriceUpdate = now;
             
             try {
-                updateConnectionStatus(false, 'Получение цены...');
+                // Получаем реальную цену через API
+                const result = await getMexcPrice(state.currentSymbol);
                 
-                let priceResult = null;
-                
-                priceResult = await getMexcPrice();
-                
-                if (priceResult && priceResult.price > 0) {
+                if (result.success) {
+                    // Успешно получили реальную цену
+                    state.isOnline = true;
+                    state.isSimulating = false;
+                    
                     const oldPrice = state.currentPrice;
-                    state.currentPrice = priceResult.price;
-                    state.lastUpdateTimestamp = new Date();
+                    state.currentPrice = result.price;
+                    state.lastValidPrice = result.price;
                     
-                    // Расчет изменения цены
-                    let changePercent = 0;
-                    if (oldPrice > 0 && state.currentPrice > 0) {
-                        changePercent = ((state.currentPrice - oldPrice) / oldPrice) * 100;
+                    // Кешируем цену
+                    state.priceCache = {
+                        value: result.price,
+                        timestamp: now,
+                        source: 'api'
+                    };
+                    
+                    // Добавляем в историю
+                    state.priceHistory.push({
+                        price: result.price,
+                        timestamp: now,
+                        source: 'api'
+                    });
+                    
+                    // Ограничиваем историю
+                    if (state.priceHistory.length > 100) {
+                        state.priceHistory.shift();
                     }
                     
-                    // Обновление отображения
-                    updatePriceDisplay(priceResult.price, changePercent, priceResult.source);
+                    // Обновляем статистику
+                    elements.priceUpdates.textContent = `Обновлений: ${state.apiStats.successfulRequests}`;
                     
-                    addDebugLog(`Цена обновлена: $${priceResult.price}, изменение: ${changePercent.toFixed(2)}%`);
+                    // Обновляем отображение
+                    updatePriceDisplay(result.price, oldPrice, 'API MEXC');
+                    
                 } else {
-                    // Не удалось получить цену
-                    handlePriceUpdateError();
-                    addDebugLog('Не удалось получить цену');
-                    
-                    // Пытаемся переключиться на рабочий метод из теста
-                    if (state.lastWorkingMethod && state.lastWorkingMethod !== state.apiMethod) {
-                        addToLog('Автоматическое переключение на рабочий метод...', 'warning');
-                        switchApiMethod(state.lastWorkingMethod);
-                    }
+                    // Не удалось получить реальную цену
+                    handlePriceUpdateFailure();
                 }
                 
             } catch (error) {
-                console.error('Error in updatePrice:', error);
-                handlePriceUpdateError();
-                addDebugLog(`Ошибка обновления цены: ${error.message}`);
+                console.error('Critical error in updatePrice:', error);
+                handlePriceUpdateFailure();
             } finally {
-                state.isUpdatingPrice = false;
+                isUpdatingPrice = false;
             }
         }
 
-        function updatePriceDisplay(price, changePercent, source) {
-            elements.headerPrice.textContent = `$${formatPrice(price)}`;
-            elements.headerPrice.className = 'price';
+        function handlePriceUpdateFailure() {
+            const now = Date.now();
+            const cacheAge = now - state.priceCache.timestamp;
             
+            // Проверяем, можем ли использовать кеш
+            if (cacheAge < MEXC_CONFIG.priceCacheTime && state.priceCache.value > 0) {
+                // Используем кешированную цену
+                state.isOnline = false;
+                state.isSimulating = false;
+                
+                const oldPrice = state.currentPrice;
+                state.currentPrice = state.priceCache.value;
+                
+                updatePriceDisplay(state.priceCache.value, oldPrice, 'Кеш API');
+                
+            } else if (shouldSimulatePrice()) {
+                // Включаем симуляцию цены
+                state.isOnline = false;
+                state.isSimulating = true;
+                
+                simulatePrice();
+                
+            } else {
+                // Используем fallback цену
+                state.isOnline = false;
+                state.isSimulating = false;
+                
+                const fallbackPrice = MEXC_CONFIG.fallbackPrices[state.currentSymbol] || 100;
+                const oldPrice = state.currentPrice;
+                state.currentPrice = fallbackPrice;
+                
+                updatePriceDisplay(fallbackPrice, oldPrice, 'Резервная цена');
+            }
+        }
+
+        function shouldSimulatePrice() {
+            if (state.simulationMode === 'never') return false;
+            if (state.simulationMode === 'always') return true;
+            
+            // Умный режим: симулируем если была валидная цена и прошло не слишком много времени
+            const timeSinceLastValid = state.priceCache.timestamp > 0 ? 
+                Date.now() - state.priceCache.timestamp : Infinity;
+            
+            return state.priceCache.value > 0 && timeSinceLastValid < MEXC_CONFIG.maxStaleTime * 3;
+        }
+
+        function simulatePrice() {
+            if (!state.isSimulating || state.priceCache.value <= 0) return;
+            
+            const basePrice = state.priceCache.value;
+            const volatility = MEXC_CONFIG.simulationVolatility;
+            
+            // Генерируем случайное изменение в пределах волатильности
+            const changePercent = (Math.random() * 2 - 1) * volatility;
+            const newPrice = basePrice * (1 + changePercent);
+            
+            // Ограничиваем минимальную цену
+            const minPrice = basePrice * 0.99; // Максимум -1%
+            const maxPrice = basePrice * 1.01; // Максимум +1%
+            
+            state.currentPrice = Math.max(minPrice, Math.min(maxPrice, newPrice));
+            
+            const oldPrice = state.currentPrice;
+            updatePriceDisplay(state.currentPrice, oldPrice, 'Симуляция');
+        }
+
+        function updatePriceDisplay(newPrice, oldPrice, source) {
+            // Расчет изменения
+            let changePercent = 0;
+            if (oldPrice > 0 && newPrice > 0) {
+                changePercent = ((newPrice - oldPrice) / oldPrice) * 100;
+            }
+            
+            // Обновляем элементы
+            elements.headerPrice.textContent = `$${formatPrice(newPrice)}`;
             elements.headerChange.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
-            elements.headerChange.className = `change ${changePercent >= 0 ? 'positive' : 'negative'}`;
+            elements.priceSource.textContent = source;
             
-            elements.headerUpdated.textContent = new Date().toLocaleTimeString('ru-RU', {hour12: false});
+            // Обновляем текущие цены в форме
+            const priceStr = formatPrice(newPrice);
+            elements.currentPrice1.textContent = priceStr;
+            elements.currentPrice2.textContent = priceStr;
+            elements.currentPrice3.textContent = priceStr;
             
-            updateConnectionStatus(true, source);
-            elements.headerApiMethod.textContent = state.apiMethod === 'direct' ? 'Прямой' : 
-                                                  state.apiMethod === 'proxy' ? 'Прокси' : 
-                                                  state.apiMethod === 'websocket' ? 'WebSocket' : 'Тест';
+            // Обновляем статус подключения
+            updateConnectionStatus(state.isOnline, source);
             
-            // Обновление отображения текущей цены
-            const currentPriceStr = formatPrice(state.currentPrice);
-            elements.currentPrice1.textContent = currentPriceStr;
-            elements.currentPrice2.textContent = currentPriceStr;
-            elements.currentPrice3.textContent = currentPriceStr;
+            // Обновляем режим в заголовке
+            elements.headerApiMode.textContent = state.isOnline ? 'Онлайн' : 
+                                               state.isSimulating ? 'Симуляция' : 'Оффлайн';
+            elements.headerApiMode.style.color = state.isOnline ? 'var(--success)' : 
+                                                state.isSimulating ? 'var(--warning)' : 'var(--danger)';
             
-            // Обновление формы
+            // Обновляем форму
             updateLinkedAmounts();
             updateTotalValue();
             
-            // Проверка ордеров
-            checkAllOrders();
-        }
-
-        function handlePriceUpdateError() {
-            elements.headerPrice.textContent = '$0.00';
-            elements.headerPrice.className = 'price no-data';
-            
-            elements.headerChange.textContent = '0.00%';
-            elements.headerChange.className = 'change no-data';
-            
-            elements.headerUpdated.textContent = '--:--:--';
-            
-            updateConnectionStatus(false, 'Нет данных');
-            
-            state.currentPrice = 0;
-        }
-
-        function startPriceUpdates() {
-            if (state.priceUpdateInterval) {
-                clearInterval(state.priceUpdateInterval);
+            // Проверяем ордеры
+            if (newPrice > 0) {
+                checkAllOrders();
             }
-            
-            // Запускаем интервальное обновление
-            const interval = parseInt(elements.priceIntervalInput.value) || MEXC_CONFIG.updateInterval;
-            state.priceUpdateInterval = setInterval(updatePrice, interval);
-            addDebugLog(`Запущено обновление цен каждые ${interval}мс`);
-            
-            // Немедленно обновляем цену
-            updatePrice();
-        }
-
-        // ========== УПРАВЛЕНИЕ СИМВОЛАМИ ==========
-        async function updateSymbol() {
-            const symbol = elements.symbolInput.value.trim().toUpperCase();
-            if (symbol && symbol.length >= 3) {
-                // Обновляем UI
-                elements.headerSymbol.textContent = `${getBaseSymbol(symbol)}/USDT`;
-                elements.headerCryptoLabel.textContent = `Баланс ${getBaseSymbol(symbol)}`;
-                
-                // Обновляем кнопки быстрого выбора
-                updateQuickSymbolButtons(symbol);
-                
-                // Сохраняем старый символ для лога
-                const oldSymbol = state.currentSymbol;
-                
-                // Обновляем состояние
-                state.currentSymbol = symbol;
-                state.currentPrice = 0;
-                state.lastPrice = 0;
-                
-                addToLog(`Символ изменен: ${oldSymbol} → ${symbol}`, 'info');
-                addDebugLog(`Смена символа: ${oldSymbol} → ${symbol}`);
-                
-                // Обновляем доступный баланс
-                updateAvailableAmount();
-                
-                // Получаем цену для нового символа
-                await updatePrice();
-                
-                // Обновляем форму
-                updateHeaderDisplay();
-            }
-        }
-
-        function updateQuickSymbolButtons(activeSymbol) {
-            elements.quickSymbolButtons.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.symbol === activeSymbol) {
-                    btn.classList.add('active');
-                }
-            });
         }
 
         // ========== УПРАВЛЕНИЕ ОРДЕРАМИ ==========
@@ -2127,226 +1980,6 @@
             return Math.max(commission, 0);
         }
 
-        function checkAllOrders() {
-            if (state.currentPrice <= 0) return;
-            
-            checkStopOrdersActivation();
-            checkLimitOrdersExecution();
-            checkOCOOrders();
-            updateOrdersDisplay();
-        }
-
-        function checkStopOrdersActivation() {
-            for (let i = state.pendingOrders.length - 1; i >= 0; i--) {
-                const order = state.pendingOrders[i];
-                
-                if (order.status === 'PENDING' && order.type === 'STOP_LIMIT') {
-                    let shouldActivate = false;
-                    
-                    if (order.side === 'BUY') {
-                        shouldActivate = state.currentPrice >= order.triggerPrice;
-                    } else {
-                        shouldActivate = state.currentPrice <= order.triggerPrice;
-                    }
-                    
-                    if (shouldActivate && !order.activated) {
-                        order.status = 'ACTIVE';
-                        order.activated = true;
-                        order.activatedAt = new Date();
-                        
-                        state.orders.push(order);
-                        state.pendingOrders.splice(i, 1);
-                        
-                        addToLog(`Стоп-лимит ${order.id} активирован: цена $${formatPrice(state.currentPrice)} достигла триггера $${formatPrice(order.triggerPrice)}`, 'warning');
-                    }
-                }
-            }
-        }
-
-        function checkLimitOrdersExecution() {
-            for (let i = state.orders.length - 1; i >= 0; i--) {
-                const order = state.orders[i];
-                
-                if (order.status === 'ACTIVE') {
-                    let shouldExecute = false;
-                    
-                    if (order.type === 'LIMIT' || (order.type === 'STOP_LIMIT' && order.activated)) {
-                        if (order.side === 'BUY') {
-                            shouldExecute = state.currentPrice <= order.limitPrice;
-                        } else {
-                            shouldExecute = state.currentPrice >= order.limitPrice;
-                        }
-                    }
-                    
-                    if (shouldExecute) {
-                        executeOrder(order, order.limitPrice, false);
-                        state.orders.splice(i, 1);
-                    }
-                }
-            }
-        }
-
-        function checkOCOOrders() {
-            for (let i = state.pendingOrders.length - 1; i >= 0; i--) {
-                const ocoOrder = state.pendingOrders[i];
-                
-                if (ocoOrder.status === 'PENDING' && ocoOrder.type === 'OCO') {
-                    
-                    const takeProfitOrder = state.orders.find(o => o.ocoGroupId === ocoOrder.id && o.isTakeProfit);
-                    
-                    if (!takeProfitOrder) continue;
-                    
-                    let stopLossTriggered = false;
-                    let takeProfitTriggered = false;
-                    
-                    if (ocoOrder.side === 'SELL') {
-                        takeProfitTriggered = state.currentPrice >= takeProfitOrder.limitPrice;
-                        stopLossTriggered = state.currentPrice <= ocoOrder.triggerPrice;
-                        
-                    } else {
-                        takeProfitTriggered = state.currentPrice <= takeProfitOrder.limitPrice;
-                        stopLossTriggered = state.currentPrice >= ocoOrder.triggerPrice;
-                    }
-                    
-                    // Если сработал СТОП-ЛОСС
-                    if (stopLossTriggered && !ocoOrder.stopActivated) {
-                        ocoOrder.stopActivated = true;
-                        ocoOrder.stopActivatedAt = new Date();
-                        
-                        addToLog(`OCO стоп-лосс активирован: цена $${formatPrice(state.currentPrice)} достигла триггера $${formatPrice(ocoOrder.triggerPrice)}`, 'warning');
-                        
-                        if (takeProfitOrder) {
-                            cancelSingleOrder(takeProfitOrder.id);
-                        }
-                        
-                        ocoOrder.status = 'ACTIVE';
-                        ocoOrder.activated = true;
-                        state.orders.push(ocoOrder);
-                        state.pendingOrders.splice(i, 1);
-                    }
-                    
-                    // Если сработал ТЕЙК-ПРОФИТ
-                    if (takeProfitTriggered && !ocoOrder.targetActivated) {
-                        ocoOrder.targetActivated = true;
-                        ocoOrder.targetActivatedAt = new Date();
-                        
-                        addToLog(`OCO тейк-профит активирован: цена $${formatPrice(state.currentPrice)} достигла цели $${formatPrice(takeProfitOrder.limitPrice)}`, 'success');
-                        
-                        cancelSingleOrder(ocoOrder.id);
-                        
-                        if (takeProfitOrder) {
-                            executeOrder(takeProfitOrder, takeProfitOrder.limitPrice, false);
-                            
-                            const index = state.orders.findIndex(o => o.id === takeProfitOrder.id);
-                            if (index !== -1) {
-                                state.orders.splice(index, 1);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        function executeOrder(order, executionPrice, isMarket = false) {
-            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
-            const commission = calculateCommission(order.type, order.amount, isMarket);
-            state.totalCommissionPaid += commission;
-            
-            if (order.side === 'BUY') {
-                const boughtQuantity = order.quantity;
-                const actualCost = executionPrice * boughtQuantity + commission;
-                
-                state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + boughtQuantity;
-                
-                if (order.amount > actualCost) {
-                    state.balance.USDT += (order.amount - actualCost);
-                }
-                
-                addToLog(`Исполнен BUY: ${formatQuantity(boughtQuantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(actualCost)} (комиссия: $${formatAmount(commission)})`, 'success');
-            } else {
-                const soldAmount = executionPrice * order.quantity - commission;
-                state.balance.USDT += soldAmount;
-                addToLog(`Исполнен SELL: ${formatQuantity(order.quantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(soldAmount)} (комиссия: $${formatAmount(commission)})`, 'success');
-            }
-            
-            order.status = 'FILLED';
-            order.executedAt = new Date();
-            order.executedPrice = executionPrice;
-            order.commission = commission;
-            order.isMarket = isMarket;
-            
-            state.orderHistory.unshift(order);
-            
-            if (state.orderHistory.length > 100) {
-                state.orderHistory = state.orderHistory.slice(0, 100);
-            }
-            
-            updateHeaderDisplay();
-            updateTotalValue();
-            saveToLocalStorage();
-        }
-
-        function cancelSingleOrder(orderId) {
-            let order = state.orders.find(o => o.id === orderId);
-            let source = 'orders';
-            
-            if (!order) {
-                order = state.pendingOrders.find(o => o.id === orderId);
-                source = 'pendingOrders';
-            }
-            
-            if (!order) return false;
-            
-            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
-            
-            if (order.side === 'BUY') {
-                state.balance.USDT += order.amount;
-            } else {
-                state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + order.quantity;
-            }
-            
-            order.status = 'CANCELLED';
-            order.cancelledAt = new Date();
-            
-            state.orderHistory.unshift(order);
-            
-            if (source === 'orders') {
-                state.orders = state.orders.filter(o => o.id !== orderId);
-            } else {
-                state.pendingOrders = state.pendingOrders.filter(o => o.id !== orderId);
-            }
-            
-            addToLog(`Ордер ${orderId} отменен`, 'info');
-            
-            updateHeaderDisplay();
-            updateTotalValue();
-            saveToLocalStorage();
-            updateOrdersDisplay();
-            
-            return true;
-        }
-
-        function cancelOCOGroup(groupId) {
-            const stopLossOrder = state.pendingOrders.find(o => o.ocoGroupId === groupId && o.isStopLoss);
-            const takeProfitOrder = state.orders.find(o => o.ocoGroupId === groupId && o.isTakeProfit);
-            
-            let cancelledCount = 0;
-            
-            if (stopLossOrder && cancelSingleOrder(stopLossOrder.id)) {
-                cancelledCount++;
-            }
-            
-            if (takeProfitOrder && cancelSingleOrder(takeProfitOrder.id)) {
-                cancelledCount++;
-            }
-            
-            if (cancelledCount > 0) {
-                addToLog(`OCO группа ${groupId} отменена (${cancelledCount} ордера)`, 'info');
-                updateOrdersDisplay();
-            }
-        }
-
-        // ========== ФУНКЦИИ ТОРГОВОЙ ФОРМЫ ==========
         function placeOrder() {
             if (state.currentPrice <= 0) {
                 addToLog('Ошибка: Нет текущей цены для размещения ордера', 'error');
@@ -2355,28 +1988,17 @@
             
             const orderType = document.querySelector('.order-type-btn.active').dataset.type;
             const side = elements.orderSide.value;
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
             
             let quantity, amount;
-            const baseSymbol = getBaseSymbol(state.currentSymbol);
-            const marketPrice = state.currentPrice || 0;
-
+            
             if (orderType === 'market') {
                 if (side === 'BUY') {
                     amount = parseFloat(elements.buyAmount.value) || 0;
-                    if (!amount || amount <= 0) {
-                        addToLog('Ошибка: Введите сумму для покупки', 'error');
-                        return;
-                    }
-                    
-                    quantity = amount / marketPrice;
+                    quantity = amount / state.currentPrice;
                 } else {
                     quantity = parseFloat(elements.sellQuantity.value) || 0;
-                    if (!quantity || quantity <= 0) {
-                        addToLog('Ошибка: Введите количество для продажи', 'error');
-                        return;
-                    }
-                    
-                    amount = quantity * marketPrice;
+                    amount = quantity * state.currentPrice;
                 }
             } else {
                 if (side === 'BUY') {
@@ -2388,245 +2010,103 @@
                 }
             }
             
-            if (!quantity || quantity <= 0) {
-                addToLog('Ошибка: Введите количество', 'error');
+            if (!validateOrderInputs(orderType, side, quantity, amount)) {
                 return;
             }
             
-            if (!amount || amount <= 0) {
-                addToLog('Ошибка: Введите сумму', 'error');
+            const order = createOrder(orderType, side, baseSymbol, quantity, amount);
+            
+            if (!checkAndReserveFunds(order)) {
+                addToLog('Ошибка: Недостаточно средств', 'error');
                 return;
             }
-
+            
             if (orderType === 'market') {
-                const order = {
-                    id: generateOrderId(),
-                    type: 'MARKET',
-                    side: side,
-                    symbol: state.currentSymbol,
-                    baseSymbol: baseSymbol,
-                    limitPrice: marketPrice,
-                    quantity: quantity,
-                    amount: amount,
-                    status: 'ACTIVE',
-                    createdAt: new Date()
-                };
-                
-                if (!checkAndReserveFunds(order)) {
-                    addToLog('Ошибка: Недостаточно средств', 'error');
-                    return;
-                }
-                
                 executeMarketOrderImmediately(order);
-                addToLog(`Рыночный ордер ${order.id} размещен и исполнен`, 'success');
-                
-            } else if (orderType === 'limit') {
-                const price = parseFloat(elements.limitPrice.value) || 0;
-                
-                if (!price || price <= 0) {
-                    addToLog('Ошибка: Введите лимитную цену', 'error');
-                    return;
-                }
-                
-                const order = {
-                    id: generateOrderId(),
-                    type: 'LIMIT',
-                    side: side,
-                    symbol: state.currentSymbol,
-                    baseSymbol: baseSymbol,
-                    limitPrice: price,
-                    quantity: quantity,
-                    amount: amount,
-                    status: 'ACTIVE',
-                    createdAt: new Date()
-                };
-                
-                if (!checkAndReserveFunds(order)) {
-                    addToLog('Ошибка: Недостаточно средств', 'error');
-                    return;
-                }
-                
-                state.orders.push(order);
-                addToLog(`Лимитный ордер ${order.id} размещен: ${side} ${formatQuantity(quantity)} @ $${formatPrice(price)}`, 'success');
-                
-            } else if (orderType === 'stop_limit') {
-                const stopPrice = parseFloat(elements.stopPrice.value);
-                const stopLimitPrice = parseFloat(elements.stopLimitPrice.value);
-                
-                if (!stopPrice || stopPrice <= 0) {
-                    addToLog('Ошибка: Введите стоп цену', 'error');
-                    return;
-                }
-                
-                if (!stopLimitPrice || stopLimitPrice <= 0) {
-                    addToLog('Ошибка: Введите лимит цену', 'error');
-                    return;
-                }
-                
-                if (side === 'BUY') {
-                    if (marketPrice > 0 && stopPrice <= marketPrice) {
-                        addToLog('Предупреждение: Для BUY стоп цена обычно выше текущей', 'warning');
-                    }
-                    if (stopLimitPrice <= stopPrice) {
-                        addToLog('Ошибка: Для BUY лимит цена должна быть выше стоп цены', 'error');
-                        return;
-                    }
-                } else {
-                    if (marketPrice > 0 && stopPrice >= marketPrice) {
-                        addToLog('Предупреждение: Для SELL стоп цена обычно ниже текущей', 'warning');
-                    }
-                    if (stopLimitPrice >= stopPrice) {
-                        addToLog('Ошибка: Для SELL лимит цена должна быть ниже стоп цены', 'error');
-                        return;
-                    }
-                }
-                
-                const order = {
-                    id: generateOrderId(),
-                    type: 'STOP_LIMIT',
-                    side: side,
-                    symbol: state.currentSymbol,
-                    baseSymbol: baseSymbol,
-                    triggerPrice: stopPrice,
-                    limitPrice: stopLimitPrice,
-                    quantity: quantity,
-                    amount: amount,
-                    status: 'PENDING',
-                    createdAt: new Date(),
-                    activated: false
-                };
-                
-                if (!checkAndReserveFunds(order)) {
-                    addToLog('Ошибка: Недостаточно средств', 'error');
-                    return;
-                }
-                
-                state.pendingOrders.push(order);
-                addToLog(`Стоп-лимит ${order.id} размещен: ${side} ${formatQuantity(quantity)}, стоп $${formatPrice(stopPrice)}, лимит $${formatPrice(stopLimitPrice)}`, 'success');
-                
-            } else if (orderType === 'oco') {
-                const stopLossTrigger = parseFloat(elements.ocoStopPrice.value);
-                const stopLossPrice = parseFloat(elements.ocoStopLimitPrice.value);
-                const takeProfitPrice = parseFloat(elements.ocoLimitPrice.value);
-                
-                if (!stopLossTrigger || stopLossTrigger <= 0) {
-                    addToLog('Ошибка: Введите цену триггера стоп-лосса', 'error');
-                    return;
-                }
-                
-                if (!stopLossPrice || stopLossPrice <= 0) {
-                    addToLog('Ошибка: Введите цену исполнения стоп-лосса', 'error');
-                    return;
-                }
-                
-                if (!takeProfitPrice || takeProfitPrice <= 0) {
-                    addToLog('Ошибка: Введите цену тейк-профита', 'error');
-                    return;
-                }
-                
-                if (side === 'SELL') {
-                    if (marketPrice > 0) {
-                        if (takeProfitPrice <= marketPrice) {
-                            addToLog('Предупреждение: Для SELL OCO тейк-профит должен быть ВЫШЕ текущей цены', 'warning');
-                        }
-                        if (stopLossTrigger >= marketPrice) {
-                            addToLog('Предупреждение: Для SELL OCO триггер стоп-лосса должен быть НИЖЕ текущей цены', 'warning');
-                        }
-                    }
-                    
-                    if (stopLossPrice >= stopLossTrigger) {
-                        addToLog('Ошибка: Для SELL OCO цена исполнения стоп-лосса должна быть НИЖЕ триггера', 'error');
-                        return;
-                    }
-                    
-                } else {
-                    if (marketPrice > 0) {
-                        if (takeProfitPrice >= marketPrice) {
-                            addToLog('Предупреждение: Для BUY OCO тейк-профит должен быть НИЖЕ текущей цены', 'warning');
-                        }
-                        if (stopLossTrigger <= marketPrice) {
-                            addToLog('Предупреждение: Для BUY OCO триггер стоп-лосса должен быть ВЫШЕ текущей цены', 'warning');
-                        }
-                    }
-                    
-                    if (stopLossPrice <= stopLossTrigger) {
-                        addToLog('Ошибка: Для BUY OCO цена исполнения стоп-лосса должна быть ВЫШЕ триггера', 'error');
-                        return;
-                    }
-                }
-                
-                const ocoGroupId = generateOrderId();
-                
-                const stopLossOrder = {
-                    id: generateOrderId(),
-                    type: 'OCO',
-                    side: side,
-                    symbol: state.currentSymbol,
-                    baseSymbol: baseSymbol,
-                    triggerPrice: stopLossTrigger,
-                    limitPrice: stopLossPrice,
-                    quantity: quantity,
-                    amount: amount,
-                    status: 'PENDING',
-                    createdAt: new Date(),
-                    activated: false,
-                    isStopLoss: true,
-                    ocoGroupId: ocoGroupId
-                };
-                
-                const takeProfitOrder = {
-                    id: generateOrderId(),
-                    type: 'LIMIT',
-                    side: side,
-                    symbol: state.currentSymbol,
-                    baseSymbol: baseSymbol,
-                    limitPrice: takeProfitPrice,
-                    quantity: quantity,
-                    amount: amount,
-                    status: 'ACTIVE',
-                    createdAt: new Date(),
-                    isTakeProfit: true,
-                    ocoGroupId: ocoGroupId
-                };
-                
-                if (!checkAndReserveFunds(stopLossOrder)) {
-                    addToLog('Ошибка: Недостаточно средств для OCO', 'error');
-                    return;
-                }
-                
-                state.pendingOrders.push(stopLossOrder);
-                state.orders.push(takeProfitOrder);
-                
-                addToLog(`OCO ордер размещен: ${side} ${formatQuantity(quantity)} ${baseSymbol}`, 'success');
-                
-                if (side === 'SELL') {
-                    addToLog(`  Тейк-профит: $${formatPrice(takeProfitPrice)} (продать при росте)`, 'success');
-                    addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
-                    addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (продать при падении)`, 'warning');
-                } else {
-                    addToLog(`  Тейк-профит: $${formatPrice(takeProfitPrice)} (купить при падении)`, 'success');
-                    addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
-                    addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (купить при росте)`, 'warning');
-                }
+            } else {
+                addOrderToState(order);
             }
-
+            
             clearOrderForm();
             updateOrdersDisplay();
-            updateTotalValue();
             saveToLocalStorage();
         }
 
-        function checkAndReserveFunds(order) {
-            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
+        function validateOrderInputs(orderType, side, quantity, amount) {
+            if (quantity <= 0 || amount <= 0) {
+                addToLog('Ошибка: Введите корректные значения', 'error');
+                return false;
+            }
             
+            if (orderType === 'limit') {
+                const price = parseFloat(elements.limitPrice.value) || 0;
+                if (price <= 0) {
+                    addToLog('Ошибка: Введите лимитную цену', 'error');
+                    return false;
+                }
+            } else if (orderType === 'stop_limit') {
+                const stopPrice = parseFloat(elements.stopPrice.value) || 0;
+                const limitPrice = parseFloat(elements.stopLimitPrice.value) || 0;
+                
+                if (stopPrice <= 0 || limitPrice <= 0) {
+                    addToLog('Ошибка: Введите стоп и лимит цены', 'error');
+                    return false;
+                }
+            } else if (orderType === 'oco') {
+                const stopPrice = parseFloat(elements.ocoStopPrice.value) || 0;
+                const stopLimitPrice = parseFloat(elements.ocoStopLimitPrice.value) || 0;
+                const limitPrice = parseFloat(elements.ocoLimitPrice.value) || 0;
+                
+                if (stopPrice <= 0 || stopLimitPrice <= 0 || limitPrice <= 0) {
+                    addToLog('Ошибка: Введите все цены для OCO', 'error');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        function createOrder(type, side, baseSymbol, quantity, amount) {
+            const order = {
+                id: generateOrderId(),
+                type: type.toUpperCase(),
+                side: side,
+                symbol: state.currentSymbol,
+                baseSymbol: baseSymbol,
+                quantity: quantity,
+                amount: amount,
+                status: type === 'market' ? 'ACTIVE' : 'PENDING',
+                createdAt: new Date(),
+                isMarket: type === 'market'
+            };
+            
+            if (type === 'limit') {
+                order.limitPrice = parseFloat(elements.limitPrice.value);
+                order.status = 'ACTIVE';
+            } else if (type === 'stop_limit') {
+                order.triggerPrice = parseFloat(elements.stopPrice.value);
+                order.limitPrice = parseFloat(elements.stopLimitPrice.value);
+                order.activated = false;
+            } else if (type === 'oco') {
+                order.triggerPrice = parseFloat(elements.ocoStopPrice.value);
+                order.limitPrice = parseFloat(elements.ocoStopLimitPrice.value);
+                order.targetPrice = parseFloat(elements.ocoLimitPrice.value);
+                order.ocoGroupId = generateOrderId();
+                order.isStopLoss = true;
+            }
+            
+            return order;
+        }
+
+        function checkAndReserveFunds(order) {
             if (order.side === 'BUY') {
                 if (state.balance.USDT >= order.amount) {
                     state.balance.USDT -= order.amount;
                     return true;
                 }
             } else {
-                if (state.balance[baseSymbol] >= order.quantity) {
-                    state.balance[baseSymbol] -= order.quantity;
+                if (state.balance[order.baseSymbol] >= order.quantity) {
+                    state.balance[order.baseSymbol] -= order.quantity;
                     return true;
                 }
             }
@@ -2634,55 +2114,120 @@
         }
 
         function executeMarketOrderImmediately(order) {
-            const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
-            const executionPrice = state.currentPrice;
-            
-            if (executionPrice <= 0) {
-                addToLog('Ошибка: Нельзя исполнить рыночный ордер без текущей цены', 'error');
-                return;
-            }
-            
             const commission = calculateCommission('MARKET', order.amount, true);
             state.totalCommissionPaid += commission;
             
             if (order.side === 'BUY') {
-                const boughtQuantity = order.quantity;
-                const actualCost = executionPrice * boughtQuantity + commission;
-                
-                state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + boughtQuantity;
+                const actualCost = state.currentPrice * order.quantity + commission;
+                state.balance[order.baseSymbol] = (state.balance[order.baseSymbol] || 0) + order.quantity;
                 
                 if (order.amount > actualCost) {
                     state.balance.USDT += (order.amount - actualCost);
                 }
                 
-                addToLog(`Рыночный BUY исполнен: ${formatQuantity(boughtQuantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(actualCost)} (комиссия: $${formatAmount(commission)})`, 'success');
+                addToLog(`Рыночный BUY исполнен: ${formatQuantity(order.quantity)} ${order.baseSymbol} @ $${formatPrice(state.currentPrice)}`, 'success');
             } else {
-                const soldAmount = executionPrice * order.quantity - commission;
+                const soldAmount = state.currentPrice * order.quantity - commission;
                 state.balance.USDT += soldAmount;
-                addToLog(`Рыночный SELL исполнен: ${formatQuantity(order.quantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(soldAmount)} (комиссия: $${formatAmount(commission)})`, 'success');
+                addToLog(`Рыночный SELL исполнен: ${formatQuantity(order.quantity)} ${order.baseSymbol} @ $${formatPrice(state.currentPrice)}`, 'success');
             }
             
             order.status = 'FILLED';
             order.executedAt = new Date();
-            order.executedPrice = executionPrice;
+            order.executedPrice = state.currentPrice;
             order.commission = commission;
-            order.isMarket = true;
             
             state.orderHistory.unshift(order);
+            updateHeaderDisplay();
+        }
+
+        function addOrderToState(order) {
+            if (order.type === 'STOP_LIMIT' || order.type === 'OCO') {
+                state.pendingOrders.push(order);
+                addToLog(`Ордер ${order.id} размещен (${order.type})`, 'success');
+            } else {
+                state.orders.push(order);
+                addToLog(`Лимитный ордер ${order.id} размещен`, 'success');
+            }
+        }
+
+        function checkAllOrders() {
+            if (state.currentPrice <= 0) return;
             
-            if (state.orderHistory.length > 100) {
-                state.orderHistory = state.orderHistory.slice(0, 100);
+            checkStopOrders();
+            checkLimitOrders();
+            updateOrdersDisplay();
+        }
+
+        function checkStopOrders() {
+            for (let i = state.pendingOrders.length - 1; i >= 0; i--) {
+                const order = state.pendingOrders[i];
+                
+                if (order.type === 'STOP_LIMIT' && order.status === 'PENDING') {
+                    const shouldActivate = (order.side === 'BUY' && state.currentPrice >= order.triggerPrice) ||
+                                         (order.side === 'SELL' && state.currentPrice <= order.triggerPrice);
+                    
+                    if (shouldActivate && !order.activated) {
+                        order.activated = true;
+                        order.status = 'ACTIVE';
+                        order.activatedAt = new Date();
+                        
+                        state.orders.push(order);
+                        state.pendingOrders.splice(i, 1);
+                        
+                        addToLog(`Стоп-лимит ${order.id} активирован`, 'warning');
+                    }
+                }
+            }
+        }
+
+        function checkLimitOrders() {
+            for (let i = state.orders.length - 1; i >= 0; i--) {
+                const order = state.orders[i];
+                
+                if (order.status === 'ACTIVE' && (order.type === 'LIMIT' || (order.type === 'STOP_LIMIT' && order.activated))) {
+                    const shouldExecute = (order.side === 'BUY' && state.currentPrice <= order.limitPrice) ||
+                                       (order.side === 'SELL' && state.currentPrice >= order.limitPrice);
+                    
+                    if (shouldExecute) {
+                        executeOrder(order, order.limitPrice, order.isMarket);
+                        state.orders.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        function executeOrder(order, price, isMarket) {
+            const commission = calculateCommission(order.type, order.amount, isMarket);
+            state.totalCommissionPaid += commission;
+            
+            if (order.side === 'BUY') {
+                const actualCost = price * order.quantity + commission;
+                state.balance[order.baseSymbol] = (state.balance[order.baseSymbol] || 0) + order.quantity;
+                
+                if (order.amount > actualCost) {
+                    state.balance.USDT += (order.amount - actualCost);
+                }
+            } else {
+                const soldAmount = price * order.quantity - commission;
+                state.balance.USDT += soldAmount;
             }
             
+            order.status = 'FILLED';
+            order.executedAt = new Date();
+            order.executedPrice = price;
+            order.commission = commission;
+            
+            state.orderHistory.unshift(order);
             updateHeaderDisplay();
-            updateTotalValue();
             saveToLocalStorage();
+            
+            addToLog(`Ордер ${order.id} исполнен @ $${formatPrice(price)}`, 'success');
         }
 
         function cancelAllOrders() {
-            const allOrders = [...state.orders, ...state.pendingOrders];
-            const activeOrders = allOrders.filter(order => 
-                order.status === 'ACTIVE' || order.status === 'PENDING'
+            const activeOrders = [...state.orders, ...state.pendingOrders].filter(o => 
+                o.status === 'ACTIVE' || o.status === 'PENDING'
             );
             
             if (activeOrders.length === 0) {
@@ -2690,183 +2235,157 @@
                 return;
             }
             
-            let cancelledCount = 0;
+            let cancelled = 0;
             activeOrders.forEach(order => {
-                if (cancelSingleOrder(order.id)) {
-                    cancelledCount++;
+                if (cancelOrder(order.id)) {
+                    cancelled++;
                 }
             });
             
-            addToLog(`Отменено ${cancelledCount} ордеров`, 'info');
+            addToLog(`Отменено ${cancelled} ордеров`, 'info');
             updateOrdersDisplay();
         }
 
-        // ========== ФУНКЦИИ ОБНОВЛЕНИЯ UI ==========
-        function updateOrdersDisplay() {
-            const allActiveOrders = [...state.orders, ...state.pendingOrders];
+        function cancelOrder(orderId) {
+            let orderIndex = state.orders.findIndex(o => o.id === orderId);
+            let orderArray = state.orders;
             
-            document.getElementById('active-orders-count').textContent = allActiveOrders.length;
-            document.getElementById('history-orders-count').textContent = state.orderHistory.length;
+            if (orderIndex === -1) {
+                orderIndex = state.pendingOrders.findIndex(o => o.id === orderId);
+                orderArray = state.pendingOrders;
+            }
             
-            let activeOrdersHtml = '';
-            if (allActiveOrders.length === 0) {
-                activeOrdersHtml = `<tr><td colspan="8" class="no-data">Нет активных ордеров</td></tr>`;
+            if (orderIndex === -1) return false;
+            
+            const order = orderArray[orderIndex];
+            
+            // Возвращаем средства
+            if (order.side === 'BUY') {
+                state.balance.USDT += order.amount;
             } else {
-                const ocoGroups = new Map();
-                
-                allActiveOrders.forEach(order => {
-                    if (order.ocoGroupId) {
-                        if (!ocoGroups.has(order.ocoGroupId)) {
-                            ocoGroups.set(order.ocoGroupId, []);
-                        }
-                        ocoGroups.get(order.ocoGroupId).push(order);
-                    }
-                });
-                
-                ocoGroups.forEach((orders, groupId) => {
-                    const stopLossOrder = orders.find(o => o.isStopLoss);
-                    const takeProfitOrder = orders.find(o => o.isTakeProfit);
-                    
-                    if (stopLossOrder && takeProfitOrder) {
-                        const sideClass = stopLossOrder.side === 'BUY' ? 'side-buy' : 'side-sell';
-                        const sideText = stopLossOrder.side === 'BUY' ? 'BUY' : 'SELL';
-                        
-                        let statusText = 'Активен';
-                        let statusClass = 'status-active';
-                        
-                        if (stopLossOrder.stopActivated) {
-                            statusText = 'Стоп-лосс активирован';
-                            statusClass = 'status-triggered';
-                        } else if (stopLossOrder.targetActivated) {
-                            statusText = 'Тейк-профит активирован';
-                            statusClass = 'status-triggered';
-                        }
-                        
-                        activeOrdersHtml += `
-                            <tr style="background: rgba(255, 165, 2, 0.05);">
-                                <td><span class="type-badge type-oco">OCO</span></td>
-                                <td><span class="side-badge ${sideClass}">${sideText}</span></td>
-                                <td style="font-size: 11px; line-height: 1.2;">
-                                    <div>Тейк: $${formatPrice(takeProfitOrder.limitPrice)}</div>
-                                    <div>Стоп: $${formatPrice(stopLossOrder.triggerPrice)} → $${formatPrice(stopLossOrder.limitPrice)}</div>
-                                </td>
-                                <td>${formatQuantity(stopLossOrder.quantity)}</td>
-                                <td>$${formatAmount(stopLossOrder.amount)}</td>
-                                <td><span class="commission-badge">${stopLossOrder.isMarket ? 'Тейкер' : 'Мейкер'}</span></td>
-                                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                                <td><button class="action-btn" onclick="cancelOCOGroup('${groupId}')" title="Отменить OCO группу"><i class="fas fa-times"></i></button></td>
-                            </tr>
-                        `;
-                    }
-                });
-                
-                allActiveOrders.forEach(order => {
-                    if (order.ocoGroupId) return;
-                    
-                    let typeClass, typeText;
-                    if (order.type === 'MARKET') {
-                        typeClass = 'type-market';
-                        typeText = 'Рынок';
-                    } else if (order.type === 'LIMIT') {
-                        typeClass = 'type-limit';
-                        typeText = 'Лимит';
-                    } else if (order.type === 'STOP_LIMIT') {
-                        typeClass = 'type-stop-limit';
-                        typeText = 'Стоп';
-                    } else {
-                        typeClass = 'type-oco';
-                        typeText = 'OCO';
-                    }
-                    
-                    let priceText = '';
-                    let statusText = '';
-                    let statusClass = '';
-                    
-                    if (order.type === 'MARKET') {
-                        priceText = `Рынок`;
-                        statusText = 'Активен';
-                        statusClass = 'status-active';
-                    } else if (order.type === 'LIMIT') {
-                        priceText = `$${formatPrice(order.limitPrice)}`;
-                        statusText = 'Активен';
-                        statusClass = 'status-active';
-                    } else if (order.type === 'STOP_LIMIT') {
-                        if (order.status === 'PENDING') {
-                            priceText = `Триггер: $${formatPrice(order.triggerPrice)}<br>Цена: $${formatPrice(order.limitPrice)}`;
-                            statusText = 'Ожидает';
-                            statusClass = 'status-pending';
-                        } else if (order.activated) {
-                            priceText = `Активен: $${formatPrice(order.limitPrice)}`;
-                            statusText = 'Активирован';
-                            statusClass = 'status-activated';
-                        }
-                    }
-                    
-                    activeOrdersHtml += `
-                        <tr>
-                            <td><span class="type-badge ${typeClass}">${typeText}</span></td>
-                            <td><span class="side-badge ${order.side === 'BUY' ? 'side-buy' : 'side-sell'}">${order.side}</span></td>
-                            <td style="font-size: 11px; line-height: 1.2;">${priceText}</td>
-                            <td>${formatQuantity(order.quantity)}</td>
-                            <td>$${formatAmount(order.amount)}</td>
-                            <td><span class="commission-badge">${order.isMarket ? 'Тейкер' : 'Мейкер'}</span></td>
-                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                            <td><button class="action-btn" onclick="cancelOrder('${order.id}')" title="Отменить ордер"><i class="fas fa-times"></i></button></td>
-                        </tr>
-                    `;
+                state.balance[order.baseSymbol] = (state.balance[order.baseSymbol] || 0) + order.quantity;
+            }
+            
+            order.status = 'CANCELLED';
+            order.cancelledAt = new Date();
+            
+            state.orderHistory.unshift(order);
+            orderArray.splice(orderIndex, 1);
+            
+            updateHeaderDisplay();
+            return true;
+        }
+
+        // ========== ОБНОВЛЕНИЕ UI ==========
+        function updateOrdersDisplay() {
+            const activeOrders = [...state.orders, ...state.pendingOrders].filter(o => 
+                o.status === 'ACTIVE' || o.status === 'PENDING'
+            );
+            
+            elements.activeOrdersCount.textContent = activeOrders.length;
+            elements.historyOrdersCount.textContent = state.orderHistory.length;
+            
+            updateActiveOrdersTable(activeOrders);
+            updateHistoryOrdersTable();
+        }
+
+        function updateActiveOrdersTable(orders) {
+            let html = '';
+            
+            if (orders.length === 0) {
+                html = '<tr><td colspan="8" class="no-data">Нет активных ордеров</td></tr>';
+            } else {
+                orders.forEach(order => {
+                    html += createOrderRow(order);
                 });
             }
             
-            document.getElementById('active-orders-table').innerHTML = activeOrdersHtml;
+            document.getElementById('active-orders-table').innerHTML = html;
+        }
+
+        function createOrderRow(order) {
+            const typeClass = `type-${order.type.toLowerCase().replace('_', '-')}`;
+            const typeText = order.type === 'MARKET' ? 'Рынок' : 
+                           order.type === 'LIMIT' ? 'Лимит' : 
+                           order.type === 'STOP_LIMIT' ? 'Стоп' : 'OCO';
             
-            let historyHtml = '';
+            const sideClass = order.side === 'BUY' ? 'side-buy' : 'side-sell';
+            const sideText = order.side;
+            
+            let priceText = '';
+            if (order.type === 'MARKET') {
+                priceText = 'Рынок';
+            } else if (order.type === 'LIMIT') {
+                priceText = `$${formatPrice(order.limitPrice)}`;
+            } else if (order.type === 'STOP_LIMIT') {
+                if (order.activated) {
+                    priceText = `Активен: $${formatPrice(order.limitPrice)}`;
+                } else {
+                    priceText = `Триггер: $${formatPrice(order.triggerPrice)}<br>Цена: $${formatPrice(order.limitPrice)}`;
+                }
+            }
+            
+            const statusClass = order.status === 'ACTIVE' ? 'status-active' : 
+                              order.status === 'PENDING' ? 'status-pending' : 'status-activated';
+            const statusText = order.status === 'ACTIVE' ? 'Активен' : 
+                             order.status === 'PENDING' ? 'Ожидает' : 'Активирован';
+            
+            return `
+                <tr>
+                    <td><span class="type-badge ${typeClass}">${typeText}</span></td>
+                    <td><span class="side-badge ${sideClass}">${sideText}</span></td>
+                    <td style="font-size: 11px; line-height: 1.2;">${priceText}</td>
+                    <td>${formatQuantity(order.quantity)}</td>
+                    <td>$${formatAmount(order.amount)}</td>
+                    <td><span class="commission-badge">${order.isMarket ? 'Тейкер' : 'Мейкер'}</span></td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td><button class="action-btn" onclick="cancelSingleOrder('${order.id}')" title="Отменить"><i class="fas fa-times"></i></button></td>
+                </tr>
+            `;
+        }
+
+        function updateHistoryOrdersTable() {
             const recentHistory = state.orderHistory.slice(0, 20);
+            let html = '';
             
             if (recentHistory.length === 0) {
-                historyHtml = `<tr><td colspan="8" class="no-data">История пуста</td></tr>`;
+                html = '<tr><td colspan="8" class="no-data">История пуста</td></tr>';
             } else {
                 recentHistory.forEach(order => {
-                    let typeClass, typeText;
-                    if (order.type === 'MARKET') {
-                        typeClass = 'type-market';
-                        typeText = 'Рынок';
-                    } else if (order.type === 'LIMIT') {
-                        typeClass = 'type-limit';
-                        typeText = 'Лимит';
-                    } else if (order.type === 'STOP_LIMIT') {
-                        typeClass = 'type-stop-limit';
-                        typeText = 'Стоп';
-                    } else {
-                        typeClass = 'type-oco';
-                        typeText = 'OCO';
-                    }
+                    const typeClass = `type-${order.type.toLowerCase().replace('_', '-')}`;
+                    const typeText = order.type === 'MARKET' ? 'Рынок' : 
+                                   order.type === 'LIMIT' ? 'Лимит' : 'Стоп';
                     
+                    const sideClass = order.side === 'BUY' ? 'side-buy' : 'side-sell';
                     const time = new Date(order.executedAt || order.cancelledAt || order.createdAt);
                     const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
                     
                     const statusClass = order.status === 'FILLED' ? 'status-filled' : 'status-cancelled';
                     const statusText = order.status === 'FILLED' ? 'Исполнен' : 'Отменен';
-                    const commissionText = order.commission ? `$${formatAmount(order.commission)}` : '-';
                     
-                    historyHtml += `
+                    html += `
                         <tr>
                             <td><span class="type-badge ${typeClass}">${typeText}</span></td>
-                            <td><span class="side-badge ${order.side === 'BUY' ? 'side-buy' : 'side-sell'}">${order.side}</span></td>
+                            <td><span class="side-badge ${sideClass}">${order.side}</span></td>
                             <td>$${formatPrice(order.executedPrice || order.limitPrice)}</td>
                             <td>${formatQuantity(order.quantity)}</td>
                             <td>$${formatAmount(order.amount)}</td>
-                            <td>${commissionText}</td>
+                            <td>${order.commission ? `$${formatAmount(order.commission)}` : '-'}</td>
                             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td style="font-size: 11px;">${timeStr}</td>
                         </tr>
                     `;
                 });
             }
-            document.getElementById('order-history-table').innerHTML = historyHtml;
+            
+            document.getElementById('order-history-table').innerHTML = html;
         }
 
-        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ФОРМЫ ==========
+        // ========== ФОРМА ТОРГОВЛИ ==========
         function toggleOrderType(type) {
+            elements.orderTypeButtons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
             elements.marketOrderFields.style.display = 'none';
             elements.limitOrderFields.style.display = 'none';
             elements.stopLimitFields.style.display = 'none';
@@ -2883,26 +2402,17 @@
             }
             
             updateLinkedAmounts();
-            updateAvailableAmount();
         }
 
         function toggleAmountControls() {
-            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
-            const isMarket = orderType === 'market';
+            const isBuy = elements.orderSide.value === 'BUY';
+            elements.buyControls.style.display = isBuy ? 'block' : 'none';
+            elements.sellControls.style.display = isBuy ? 'none' : 'block';
             
-            if (elements.orderSide.value === 'BUY') {
-                elements.buyControls.style.display = 'block';
-                elements.sellControls.style.display = 'none';
-                if (isMarket) {
-                    elements.marketLabel.textContent = 'Сумма (USDT)';
-                }
-            } else {
-                elements.buyControls.style.display = 'none';
-                elements.sellControls.style.display = 'block';
-                if (isMarket) {
-                    elements.marketLabel.textContent = 'Количество';
-                }
+            if (document.querySelector('.order-type-btn.active').dataset.type === 'market') {
+                elements.marketLabel.textContent = isBuy ? 'Сумма (USDT)' : 'Количество';
             }
+            
             updateLinkedAmounts();
             updateAvailableAmount();
         }
@@ -2921,60 +2431,36 @@
 
         function updateLinkedAmounts() {
             const orderType = document.querySelector('.order-type-btn.active').dataset.type;
-            const isMarket = orderType === 'market';
+            const isBuy = elements.orderSide.value === 'BUY';
+            const price = getCurrentPriceInput();
             
-            if (isMarket) {
-                if (elements.orderSide.value === 'BUY') {
+            if (orderType === 'market') {
+                if (isBuy) {
                     const amount = parseFloat(elements.buyAmount.value) || 0;
-                    const price = state.currentPrice || 1;
                     if (price > 0) {
-                        const quantity = amount / price;
-                        elements.buyQuantity.value = quantity.toFixed(8);
-                    } else {
-                        elements.buyQuantity.value = '';
+                        elements.buyQuantity.value = (amount / price).toFixed(8);
                     }
                 } else {
                     const quantity = parseFloat(elements.sellQuantity.value) || 0;
-                    const price = state.currentPrice || 1;
                     if (price > 0) {
-                        const amount = quantity * price;
-                        elements.sellAmount.value = amount.toFixed(2);
-                    } else {
-                        elements.sellAmount.value = '';
+                        elements.sellAmount.value = (quantity * price).toFixed(2);
                     }
                 }
             } else {
-                if (elements.orderSide.value === 'BUY') {
-                    updateBuyQuantityFromAmount();
+                if (isBuy) {
+                    const amount = parseFloat(elements.buyAmount.value) || 0;
+                    if (price > 0) {
+                        elements.buyQuantity.value = (amount / price).toFixed(8);
+                    }
                 } else {
-                    updateSellAmountFromQuantity();
+                    const quantity = parseFloat(elements.sellQuantity.value) || 0;
+                    if (price > 0) {
+                        elements.sellAmount.value = (quantity * price).toFixed(2);
+                    }
                 }
             }
+            
             updateTotalCost();
-        }
-
-        function updateBuyQuantityFromAmount() {
-            const amount = parseFloat(elements.buyAmount.value) || 0;
-            const price = getCurrentPriceInput();
-            
-            if (price > 0) {
-                const quantity = amount / price;
-                elements.buyQuantity.value = quantity.toFixed(8);
-            } else {
-                elements.buyQuantity.value = '';
-            }
-        }
-
-        function updateSellAmountFromQuantity() {
-            const quantity = parseFloat(elements.sellQuantity.value) || 0;
-            const price = getCurrentPriceInput();
-            
-            if (price > 0) {
-                const amount = quantity * price;
-                elements.sellAmount.value = amount.toFixed(2);
-            } else {
-                elements.sellAmount.value = '';
-            }
         }
 
         function getCurrentPriceInput() {
@@ -2991,86 +2477,21 @@
         }
 
         function updateTotalCost() {
-            let amount = 0;
-            let commission = 0;
+            const isBuy = elements.orderSide.value === 'BUY';
             const orderType = document.querySelector('.order-type-btn.active').dataset.type;
             const isMarket = orderType === 'market';
             
-            if (elements.orderSide.value === 'BUY') {
+            let amount = 0;
+            if (isBuy) {
                 amount = parseFloat(elements.buyAmount.value) || 0;
             } else {
                 amount = parseFloat(elements.sellAmount.value) || 0;
             }
             
-            commission = calculateCommission(orderType, amount, isMarket);
+            const commission = calculateCommission(orderType, amount, isMarket);
             
-            elements.totalCost.textContent = formatAmount(amount) + ' USDT';
-            elements.commissionAmount.textContent = formatAmount(commission) + ' USDT';
-        }
-
-        function setBuyAmountPercent(percent) {
-            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
-            const maxAmount = state.balance.USDT;
-            const amount = (maxAmount * percent) / 100;
-            
-            if (orderType === 'market') {
-                elements.buyAmount.value = amount.toFixed(2);
-            } else {
-                elements.buyAmount.value = amount.toFixed(2);
-                updateBuyQuantityFromAmount();
-            }
-        }
-
-        function setSellQuantityPercent(percent) {
-            const orderType = document.querySelector('.order-type-btn.active').dataset.type;
-            const baseSymbol = getBaseSymbol(state.currentSymbol);
-            const maxQuantity = state.balance[baseSymbol] || 0;
-            const quantity = (maxQuantity * percent) / 100;
-            
-            if (orderType === 'market') {
-                elements.sellQuantity.value = quantity.toFixed(8);
-            } else {
-                elements.sellQuantity.value = quantity.toFixed(8);
-                updateSellAmountFromQuantity();
-            }
-        }
-
-        function updateHeaderDisplay() {
-            if (state.currentPrice > 0) {
-                elements.headerPrice.textContent = `$${formatPrice(state.currentPrice)}`;
-                elements.headerPrice.className = 'price';
-            } else {
-                elements.headerPrice.textContent = '$0.00';
-                elements.headerPrice.className = 'price no-data';
-            }
-            
-            if (state.lastUpdateTimestamp) {
-                const timeStr = state.lastUpdateTimestamp.toLocaleTimeString('ru-RU', {hour12: false});
-                elements.headerUpdated.textContent = timeStr;
-            }
-            
-            const baseSymbol = getBaseSymbol(state.currentSymbol);
-            const cryptoBalance = state.balance[baseSymbol] || 0;
-            
-            elements.headerBalanceUsdt.textContent = formatAmount(state.balance.USDT);
-            elements.headerBalanceCrypto.textContent = formatQuantity(cryptoBalance);
-            elements.headerCryptoValue.textContent = `≈ $${formatAmount(cryptoBalance * state.currentPrice)}`;
-            
-            updateTotalValue();
-        }
-
-        function updateTotalValue() {
-            const baseSymbol = getBaseSymbol(state.currentSymbol);
-            const cryptoBalance = state.balance[baseSymbol] || 0;
-            const cryptoValue = cryptoBalance * state.currentPrice;
-            const totalValue = state.balance.USDT + cryptoValue;
-            
-            elements.headerTotalValue.textContent = `$${formatAmount(totalValue)}`;
-            
-            // Расчет общего изменения
-            const totalChange = ((totalValue - state.initialTotalValue) / state.initialTotalValue) * 100;
-            elements.headerTotalChange.textContent = `${totalChange >= 0 ? '+' : ''}${totalChange.toFixed(2)}%`;
-            elements.headerTotalChange.style.color = totalChange >= 0 ? 'var(--success)' : 'var(--danger)';
+            elements.totalCost.textContent = `${formatAmount(amount)} USDT`;
+            elements.commissionAmount.textContent = `${formatAmount(commission)} USDT`;
         }
 
         function clearOrderForm() {
@@ -3087,44 +2508,92 @@
             elements.buySlider.value = 0;
             elements.sellSlider.value = 100;
             
-            document.querySelectorAll('#buy-controls .amount-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            const buy25Btn = document.querySelector('#buy-controls .amount-btn[data-percent="25"]');
-            if (buy25Btn) buy25Btn.classList.add('active');
-            
-            document.querySelectorAll('#sell-controls .amount-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            const sell100Btn = document.querySelector('#sell-controls .amount-btn[data-percent="100"]');
-            if (sell100Btn) sell100Btn.classList.add('active');
-            
             updateTotalCost();
+        }
+
+        // ========== ОБНОВЛЕНИЕ ЗАГОЛОВКА ==========
+        function updateHeaderDisplay() {
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
+            const cryptoBalance = state.balance[baseSymbol] || 0;
+            const cryptoValue = cryptoBalance * state.currentPrice;
+            const totalValue = state.balance.USDT + cryptoValue;
+            
+            elements.headerBalanceUsdt.textContent = formatAmount(state.balance.USDT);
+            elements.headerBalanceCrypto.textContent = formatQuantity(cryptoBalance);
+            elements.headerCryptoValue.textContent = `≈ $${formatAmount(cryptoValue)}`;
+            elements.headerTotalValue.textContent = `$${formatAmount(totalValue)}`;
+            
+            const totalChange = ((totalValue - state.initialTotalValue) / state.initialTotalValue) * 100;
+            elements.headerTotalChange.textContent = `${totalChange >= 0 ? '+' : ''}${totalChange.toFixed(2)}%`;
+            elements.headerTotalChange.style.color = totalChange >= 0 ? 'var(--success)' : 'var(--danger)';
+            
+            elements.headerApiStats.textContent = `${state.apiStats.totalRequests} запросов`;
+        }
+
+        function updateTotalValue() {
+            const baseSymbol = getBaseSymbol(state.currentSymbol);
+            const cryptoBalance = state.balance[baseSymbol] || 0;
+            const cryptoValue = cryptoBalance * state.currentPrice;
+            const totalValue = state.balance.USDT + cryptoValue;
+            
+            elements.headerTotalValue.textContent = `$${formatAmount(totalValue)}`;
+            
+            const totalChange = ((totalValue - state.initialTotalValue) / state.initialTotalValue) * 100;
+            elements.headerTotalChange.textContent = `${totalChange >= 0 ? '+' : ''}${totalChange.toFixed(2)}%`;
+            elements.headerTotalChange.style.color = totalChange >= 0 ? 'var(--success)' : 'var(--danger)';
+        }
+
+        // ========== УПРАВЛЕНИЕ СИМВОЛАМИ ==========
+        async function updateSymbol() {
+            const symbol = elements.symbolInput.value.trim().toUpperCase();
+            if (!symbol || symbol === state.currentSymbol) return;
+            
+            const oldSymbol = state.currentSymbol;
+            state.currentSymbol = symbol;
+            
+            elements.headerSymbol.textContent = `${getBaseSymbol(symbol)}/USDT`;
+            elements.headerCryptoLabel.textContent = `Баланс ${getBaseSymbol(symbol)}`;
+            
+            updateQuickSymbolButtons(symbol);
+            updateAvailableAmount();
+            
+            addToLog(`Символ изменен: ${oldSymbol} → ${symbol}`, 'info');
+            
+            // Немедленно обновляем цену
+            updatePrice();
+        }
+
+        function updateQuickSymbolButtons(activeSymbol) {
+            elements.quickSymbolButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.symbol === activeSymbol) {
+                    btn.classList.add('active');
+                }
+            });
         }
 
         // ========== LOCAL STORAGE ==========
         function saveToLocalStorage() {
-            const saveData = {
+            const data = {
                 balance: state.balance,
                 orders: state.orders,
                 pendingOrders: state.pendingOrders,
                 orderHistory: state.orderHistory,
                 currentSymbol: state.currentSymbol,
-                sessionStartTime: state.sessionStartTime,
                 initialTotalValue: state.initialTotalValue,
-                fees: state.fees,
                 totalCommissionPaid: state.totalCommissionPaid,
-                apiMethod: state.apiMethod,
-                proxyType: state.proxyType,
-                lastWorkingMethod: state.lastWorkingMethod,
-                lastWorkingProxy: state.lastWorkingProxy
+                apiStats: state.apiStats,
+                fees: state.fees,
+                simulationMode: state.simulationMode,
+                updateInterval: state.updateInterval
             };
-            localStorage.setItem('mexcTradingData', JSON.stringify(saveData));
+            
+            localStorage.setItem('mexcProTradingData', JSON.stringify(data));
         }
 
         function loadFromLocalStorage() {
             try {
-                const saved = localStorage.getItem('mexcTradingData');
+                const saved = localStorage.getItem('mexcProTradingData');
                 if (saved) {
                     const data = JSON.parse(saved);
                     
@@ -3133,72 +2602,36 @@
                     state.pendingOrders = data.pendingOrders || [];
                     state.orderHistory = data.orderHistory || [];
                     state.currentSymbol = data.currentSymbol || 'BTCUSDT';
-                    state.sessionStartTime = data.sessionStartTime ? new Date(data.sessionStartTime) : new Date();
                     state.initialTotalValue = data.initialTotalValue || 10000;
-                    state.fees = data.fees || { ...MEXC_CONFIG.fees };
                     state.totalCommissionPaid = data.totalCommissionPaid || 0;
-                    state.apiMethod = data.apiMethod || 'proxy';
-                    state.proxyType = data.proxyType || 'allorigins';
-                    state.lastWorkingMethod = data.lastWorkingMethod || 'proxy';
-                    state.lastWorkingProxy = data.lastWorkingProxy || 'allorigins';
+                    state.apiStats = data.apiStats || state.apiStats;
+                    state.fees = data.fees || { maker: 0.0000, taker: 0.0500 };
+                    state.simulationMode = data.simulationMode || 'smart';
+                    state.updateInterval = data.updateInterval || 1000;
                     
+                    // Обновляем UI
                     elements.symbolInput.value = state.currentSymbol;
                     elements.makerFeeInput.value = state.fees.maker;
                     elements.takerFeeInput.value = state.fees.taker;
-                    elements.proxySelect.value = state.proxyType;
+                    elements.simulationMode.value = state.simulationMode;
+                    elements.priceIntervalSlider.value = state.updateInterval;
+                    elements.intervalValue.textContent = `${state.updateInterval}ms`;
                     
                     updateHeaderDisplay();
                     updateOrdersDisplay();
-                    updateTotalValue();
-                    updateApiMethodButtons();
                     updateQuickSymbolButtons(state.currentSymbol);
                     
-                    addToLog('Данные загружены из localStorage', 'success');
+                    addToLog('Данные загружены', 'success');
                 }
             } catch (error) {
-                console.error('Error loading data:', error);
+                console.error('Ошибка загрузки данных:', error);
             }
         }
 
-        // ========== УПРАВЛЕНИЕ API МЕТОДАМИ ==========
-        function updateApiMethodButtons() {
-            elements.apiMethodButtons.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.method === state.apiMethod) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            elements.headerApiMethod.textContent = 
-                state.apiMethod === 'direct' ? 'Прямой' : 
-                state.apiMethod === 'proxy' ? 'Прокси' : 
-                state.apiMethod === 'websocket' ? 'WebSocket' : 'Тест';
-        }
-
-        function switchApiMethod(method) {
-            if (method === state.apiMethod) return;
-            
-            addToLog(`Смена метода API: ${state.apiMethod} → ${method}`, 'info');
-            
-            state.apiMethod = method;
-            state.currentPrice = 0;
-            state.lastPrice = 0;
-            
-            updateApiMethodButtons();
-            
-            // Запускаем соответствующее подключение
-            if (method === 'test') {
-                testConnection();
-            } else {
-                startPriceUpdates();
-                setTimeout(() => updatePrice(), 100);
-            }
-        }
-
-        // ========== ФУНКЦИИ НАСТРОЕК ==========
+        // ========== НАСТРОЙКИ ==========
         function toggleSettings() {
-            elements.settingsPanel.classList.add('active');
-            elements.settingsOverlay.classList.add('active');
+            elements.settingsPanel.classList.toggle('active');
+            elements.settingsOverlay.classList.toggle('active');
         }
 
         function closeSettings() {
@@ -3206,38 +2639,32 @@
             elements.settingsOverlay.classList.remove('active');
         }
 
-        function saveBalance() {
-            const usdt = parseFloat(document.getElementById('initial-usdt').value);
-            const cryptoSymbol = document.getElementById('crypto-symbol').value.trim().toUpperCase();
-            const cryptoAmount = parseFloat(document.getElementById('initial-crypto').value);
-            
-            if (isNaN(usdt) || usdt < 0) {
-                addToLog('Ошибка: Неверная сумма USDT', 'error');
-                return;
-            }
-            
-            state.balance.USDT = usdt;
-            if (cryptoSymbol && !isNaN(cryptoAmount) && cryptoAmount >= 0) {
-                state.balance[cryptoSymbol] = cryptoAmount;
-            }
-            
+        function saveSettings() {
             state.fees.maker = parseFloat(elements.makerFeeInput.value) || 0;
             state.fees.taker = parseFloat(elements.takerFeeInput.value) || 0.05;
-            
-            state.proxyType = elements.proxySelect.value;
+            state.simulationMode = elements.simulationMode.value;
             state.debugMode = elements.debugMode.value === 'true';
+            state.updateInterval = parseInt(elements.priceIntervalSlider.value);
             
-            if (state.proxyType === 'custom') {
-                elements.customProxyGroup.style.display = 'block';
-            } else {
-                elements.customProxyGroup.style.display = 'none';
-            }
+            // Обновляем интервал обновления
+            clearInterval(state.priceUpdateInterval);
+            state.priceUpdateInterval = setInterval(updatePrice, state.updateInterval);
+            elements.updateRate.textContent = `Частота: ${state.updateInterval}ms`;
             
-            updateHeaderDisplay();
-            updateTotalValue();
+            // Обновляем кнопку симуляции
+            updateSimulationButton();
+            
             addToLog('Настройки сохранены', 'success');
             closeSettings();
             saveToLocalStorage();
+        }
+
+        function updateSimulationButton() {
+            const icon = state.simulationMode === 'never' ? 'fa-toggle-off' : 'fa-toggle-on';
+            const text = state.simulationMode === 'never' ? 'Симуляция: выкл' : 
+                        state.simulationMode === 'always' ? 'Симуляция: всегда' : 'Симуляция: умная';
+            
+            elements.toggleSimulationBtn.innerHTML = `<i class="fas ${icon}"></i> ${text}`;
         }
 
         function resetBalance() {
@@ -3250,7 +2677,6 @@
             
             updateHeaderDisplay();
             updateOrdersDisplay();
-            updateTotalValue();
             addToLog('Баланс сброшен', 'info');
             saveToLocalStorage();
         }
@@ -3263,16 +2689,17 @@
             state.initialTotalValue = 10000;
             state.totalCommissionPaid = 0;
             state.apiStats = {
-                requests: 0,
-                successes: 0,
-                errors: 0,
-                avgResponseTime: 0,
-                lastResponseTime: 0
+                totalRequests: 0,
+                successfulRequests: 0,
+                failedRequests: 0,
+                lastResponseTime: 0,
+                lastUpdateTime: null,
+                consecutiveErrors: 0
             };
             
             updateHeaderDisplay();
             updateOrdersDisplay();
-            updateTotalValue();
+            
             document.getElementById('execution-log').innerHTML = `
                 <div class="log-item">
                     <div class="log-time">${new Date().toLocaleTimeString('ru-RU', {hour12: false})}</div>
@@ -3280,39 +2707,31 @@
                 </div>
             `;
             
-            elements.debugPanel.innerHTML = '';
-            
-            localStorage.removeItem('mexcTradingData');
+            localStorage.removeItem('mexcProTradingData');
             addToLog('Все данные очищены', 'info');
         }
 
         // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
         function setupEventListeners() {
+            // Order type buttons
             elements.orderTypeButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
                     elements.orderTypeButtons.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    toggleOrderType(btn.dataset.type);
+                    e.target.classList.add('active');
+                    toggleOrderType(e.target.dataset.type);
                 });
             });
 
-            elements.apiMethodButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    switchApiMethod(btn.dataset.method);
-                });
+            // Order side
+            elements.orderSide.addEventListener('change', toggleAmountControls);
+
+            // Symbol
+            elements.updateSymbolBtn.addEventListener('click', updateSymbol);
+            elements.symbolInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') updateSymbol();
             });
 
-            elements.orderSide.addEventListener('change', () => {
-                toggleAmountControls();
-                updateLinkedAmounts();
-                updateAvailableAmount();
-            });
-
-            elements.placeOrderBtn.addEventListener('click', placeOrder);
-            elements.cancelAllBtn.addEventListener('click', cancelAllOrders);
-
-            elements.testConnectionBtn.addEventListener('click', testConnection);
-
+            // Quick symbols
             elements.quickSymbolButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     elements.symbolInput.value = btn.dataset.symbol;
@@ -3320,157 +2739,169 @@
                 });
             });
 
-            elements.proxySelect.addEventListener('change', function() {
-                if (this.value === 'custom') {
-                    elements.customProxyGroup.style.display = 'block';
+            // Trading buttons
+            elements.placeOrderBtn.addEventListener('click', placeOrder);
+            elements.cancelAllBtn.addEventListener('click', cancelAllOrders);
+
+            // Control buttons
+            elements.forceUpdateBtn.addEventListener('click', () => {
+                updatePrice();
+                addToLog('Принудительное обновление цены', 'info');
+            });
+
+            elements.toggleSimulationBtn.addEventListener('click', () => {
+                if (state.simulationMode === 'smart') {
+                    state.simulationMode = 'always';
+                } else if (state.simulationMode === 'always') {
+                    state.simulationMode = 'never';
                 } else {
-                    elements.customProxyGroup.style.display = 'none';
+                    state.simulationMode = 'smart';
                 }
+                
+                updateSimulationButton();
+                addToLog(`Режим симуляции: ${state.simulationMode}`, 'info');
             });
 
-            document.querySelectorAll('.amount-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const percent = parseInt(e.target.dataset.percent);
-                    const container = e.target.closest('.amount-controls');
-                    if (container) {
-                        container.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
-                        e.target.classList.add('active');
-                    }
-                    
-                    if (elements.orderSide.value === 'BUY') {
-                        setBuyAmountPercent(percent);
-                    } else {
-                        setSellQuantityPercent(percent);
-                    }
-                });
+            // Settings
+            elements.settingsToggle.addEventListener('click', toggleSettings);
+            elements.settingsOverlay.addEventListener('click', closeSettings);
+            document.getElementById('save-balance-btn').addEventListener('click', saveSettings);
+            document.getElementById('reset-balance-btn').addEventListener('click', resetBalance);
+            document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
+
+            // Interval slider
+            elements.priceIntervalSlider.addEventListener('input', function() {
+                elements.intervalValue.textContent = `${this.value}ms`;
             });
 
+            // Form inputs
+            elements.buyAmount.addEventListener('input', updateLinkedAmounts);
+            elements.sellQuantity.addEventListener('input', updateLinkedAmounts);
+            elements.limitPrice.addEventListener('input', updateLinkedAmounts);
+            elements.stopPrice.addEventListener('input', updateLinkedAmounts);
+            elements.stopLimitPrice.addEventListener('input', updateLinkedAmounts);
+            elements.ocoStopPrice.addEventListener('input', updateLinkedAmounts);
+            elements.ocoStopLimitPrice.addEventListener('input', updateLinkedAmounts);
+            elements.ocoLimitPrice.addEventListener('input', updateLinkedAmounts);
+
+            // Sliders
+            elements.buySlider.addEventListener('input', function() {
+                const percent = this.value;
+                const maxAmount = state.balance.USDT;
+                const amount = (maxAmount * percent) / 100;
+                elements.buyAmount.value = amount.toFixed(2);
+                updateLinkedAmounts();
+            });
+
+            elements.sellSlider.addEventListener('input', function() {
+                const percent = this.value;
+                const baseSymbol = getBaseSymbol(state.currentSymbol);
+                const maxQuantity = state.balance[baseSymbol] || 0;
+                const quantity = (maxQuantity * percent) / 100;
+                elements.sellQuantity.value = quantity.toFixed(8);
+                updateLinkedAmounts();
+            });
+
+            // Percent buttons
             document.querySelectorAll('.percent-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const percent = parseFloat(e.target.dataset.percent) / 100;
-                    const currentPrice = state.currentPrice || 0;
-                    if (currentPrice <= 0) {
-                        addToLog('Нет текущей цены для расчета процентов', 'error');
-                        return;
-                    }
-                    const newPrice = currentPrice * (1 + percent);
+                btn.addEventListener('click', function() {
+                    const percent = parseFloat(this.dataset.percent) / 100;
+                    const newPrice = state.currentPrice * (1 + percent);
                     
                     const orderType = document.querySelector('.order-type-btn.active').dataset.type;
-                    let targetInput = null;
-                    
                     if (orderType === 'limit') {
-                        targetInput = elements.limitPrice;
+                        elements.limitPrice.value = newPrice.toFixed(8);
                     } else if (orderType === 'stop_limit') {
                         if (percent < 0) {
-                            targetInput = elements.stopPrice;
+                            elements.stopPrice.value = newPrice.toFixed(8);
                         } else {
-                            targetInput = elements.stopLimitPrice;
+                            elements.stopLimitPrice.value = newPrice.toFixed(8);
                         }
                     } else if (orderType === 'oco') {
                         if (percent < 0) {
-                            targetInput = elements.ocoStopPrice;
-                        } else if (e.target.dataset.percent === '+10') {
-                            targetInput = elements.ocoLimitPrice;
+                            elements.ocoStopPrice.value = newPrice.toFixed(8);
+                        } else if (this.dataset.percent === '+10') {
+                            elements.ocoLimitPrice.value = newPrice.toFixed(8);
                         } else {
-                            targetInput = elements.ocoStopLimitPrice;
+                            elements.ocoStopLimitPrice.value = newPrice.toFixed(8);
                         }
                     }
                     
-                    if (targetInput) {
-                        targetInput.value = newPrice.toFixed(8);
-                        updateLinkedAmounts();
-                    }
+                    updateLinkedAmounts();
                 });
             });
 
-            elements.settingsToggle.addEventListener('click', toggleSettings);
-            elements.settingsOverlay.addEventListener('click', closeSettings);
-            document.getElementById('save-balance-btn').addEventListener('click', saveBalance);
-            document.getElementById('reset-balance-btn').addEventListener('click', resetBalance);
-            document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
-            
-            elements.symbolInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    updateSymbol();
-                }
+            // Amount buttons
+            document.querySelectorAll('.amount-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const container = e.target.closest('.amount-controls');
+                    container.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    const percent = parseInt(e.target.dataset.percent);
+                    const isBuy = elements.orderSide.value === 'BUY';
+                    
+                    if (isBuy) {
+                        const maxAmount = state.balance.USDT;
+                        const amount = (maxAmount * percent) / 100;
+                        elements.buyAmount.value = amount.toFixed(2);
+                        elements.buySlider.value = percent;
+                    } else {
+                        const baseSymbol = getBaseSymbol(state.currentSymbol);
+                        const maxQuantity = state.balance[baseSymbol] || 0;
+                        const quantity = (maxQuantity * percent) / 100;
+                        elements.sellQuantity.value = quantity.toFixed(8);
+                        elements.sellSlider.value = percent;
+                    }
+                    
+                    updateLinkedAmounts();
+                });
             });
-            
-            elements.updateSymbolBtn.addEventListener('click', updateSymbol);
-            
-            elements.makerFeeInput.addEventListener('change', updateFees);
-            elements.takerFeeInput.addEventListener('change', updateFees);
-            
-            elements.priceIntervalInput.addEventListener('change', restartPriceUpdates);
-            elements.debugMode.addEventListener('change', updateDebugMode);
-            
-            // Обработчики для слайдеров
-            elements.buySlider.addEventListener('input', function() {
-                const percent = parseInt(this.value);
-                setBuyAmountPercent(percent);
-            });
-            
-            elements.sellSlider.addEventListener('input', function() {
-                const percent = parseInt(this.value);
-                setSellQuantityPercent(percent);
-            });
-        }
-
-        function updateFees() {
-            state.fees.maker = parseFloat(elements.makerFeeInput.value) || 0;
-            state.fees.taker = parseFloat(elements.takerFeeInput.value) || 0.05;
-            addToLog(`Комиссии обновлены: мейкер ${state.fees.maker}%, тейкер ${state.fees.taker}%`, 'info');
-        }
-
-        function updateDebugMode() {
-            state.debugMode = elements.debugMode.value === 'true';
-            elements.debugPanel.style.display = state.debugMode ? 'block' : 'none';
-            addToLog(`Режим отладки: ${state.debugMode ? 'включен' : 'выключен'}`, 'info');
-        }
-
-        function restartPriceUpdates() {
-            startPriceUpdates();
         }
 
         // ========== ИНИЦИАЛИЗАЦИЯ ==========
-        document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
+        function init() {
             loadFromLocalStorage();
-            updateHeaderDisplay();
-            updateTotalValue();
+            setupEventListeners();
+            
+            // Начальные настройки UI
             toggleAmountControls();
-            updateLinkedAmounts();
             updateAvailableAmount();
-            updateQuickSymbolButtons(state.currentSymbol);
+            updateSimulationButton();
             
-            // Устанавливаем allorigins как прокси по умолчанию
-            state.proxyType = 'allorigins';
-            elements.proxySelect.value = 'allorigins';
-            state.lastWorkingMethod = 'proxy';
-            state.lastWorkingProxy = 'allorigins';
+            // Запускаем обновление цен
+            state.priceUpdateInterval = setInterval(updatePrice, state.updateInterval);
             
-            // Начинаем с прокси метода (самый надежный)
-            switchApiMethod('proxy');
+            // Запускаем проверку ордеров
+            state.orderCheckInterval = setInterval(checkAllOrders, 500);
             
-            // Проверяем ордера каждые 500мс
+            // Запускаем периодическую симуляцию
             setInterval(() => {
-                checkAllOrders();
-            }, 500);
+                if (state.isSimulating) {
+                    simulatePrice();
+                }
+            }, 1000);
             
-            addToLog('MEXC Trading Simulator запущен', 'success');
-            addToLog(`Метод API: ${state.apiMethod.toUpperCase()} (${state.proxyType})`, 'info');
-            addToLog('Используются реальные цены с MEXC через allorigins.win', 'info');
-        });
+            addToLog('MEXC Pro Trading Simulator запущен', 'success');
+            addToLog('Используется прямой API MEXC с вашим ключом', 'api');
+            
+            // Первое обновление цены
+            setTimeout(updatePrice, 1000);
+        }
 
-        // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
-        window.cancelOrder = function(orderId) {
-            return cancelSingleOrder(orderId);
-        };
-
-        window.cancelOCOGroup = function(groupId) {
-            return cancelOCOGroup(groupId);
+        // Глобальные функции для вызова из HTML
+        window.cancelSingleOrder = function(orderId) {
+            if (cancelOrder(orderId)) {
+                addToLog(`Ордер ${orderId} отменен`, 'info');
+                updateOrdersDisplay();
+                saveToLocalStorage();
+            }
         };
 
         window.closeSettings = closeSettings;
+
+        // Запуск при загрузке
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
