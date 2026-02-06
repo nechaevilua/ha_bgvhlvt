@@ -148,23 +148,16 @@
             height: 8px;
             border-radius: 50%;
             background: var(--danger);
-            animation: pulse 2s infinite;
         }
 
         .status-dot.connected {
             background: var(--success);
-            animation: pulse 1s infinite;
-        }
-
-        .status-dot.simulating {
-            background: var(--warning);
-            animation: pulse 0.8s infinite;
         }
 
         @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
-            100% { opacity: 1; transform: scale(1); }
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
         }
 
         /* Symbol Quick Select */
@@ -890,19 +883,6 @@
             background: rgba(255, 165, 2, 0.2);
         }
 
-        /* Price Simulation Indicator */
-        .simulation-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            background: rgba(255, 165, 2, 0.1);
-            color: var(--warning);
-            margin-left: 8px;
-        }
-
         /* Responsive */
         @media (max-width: 1200px) {
             .main-content {
@@ -980,13 +960,13 @@
                     <div class="symbol" id="header-symbol">BTC/USDT</div>
                     <div class="price offline" id="header-price">$0.00</div>
                     <div class="change offline" id="header-change">0.00%</div>
-                    <div class="price-source" id="price-source">Подключение...</div>
+                    <div class="price-source" id="price-source">Подключение к API...</div>
                     <div class="connection-status">
                         <span class="status-dot" id="status-dot"></span>
                         <span id="status-text">Подключение к API...</span>
                     </div>
                     <div class="symbol-quick-select">
-                        <button class="quick-symbol-btn" data-symbol="BTCUSDT">BTC</button>
+                        <button class="quick-symbol-btn active" data-symbol="BTCUSDT">BTC</button>
                         <button class="quick-symbol-btn" data-symbol="ETHUSDT">ETH</button>
                         <button class="quick-symbol-btn" data-symbol="BNBUSDT">BNB</button>
                         <button class="quick-symbol-btn" data-symbol="SOLUSDT">SOL</button>
@@ -1021,7 +1001,7 @@
                     <div class="label">API Статистика</div>
                     <div class="value" id="header-api-stats">0 запросов</div>
                     <div class="sub-value">
-                        <span>Режим: <span id="header-api-mode">Онлайн</span></span>
+                        <span>Статус: <span id="header-api-mode">Подключение...</span></span>
                         <span id="header-response-time" style="color: var(--success); margin-left: 8px;">0ms</span>
                     </div>
                 </div>
@@ -1125,9 +1105,6 @@
                                 <button class="test-connection-btn" id="force-update-btn">
                                     <i class="fas fa-sync-alt"></i> Обновить
                                 </button>
-                                <button class="test-connection-btn" id="toggle-simulation-btn">
-                                    <i class="fas fa-toggle-on"></i> Симуляция
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -1191,7 +1168,7 @@
                             <!-- Market Order Fields -->
                             <div id="market-order-fields">
                                 <div class="form-group">
-                                    <div class="form-label" id="market-label">Количество</div>
+                                    <div class="form-label" id="market-label">Сумма (USDT)</div>
                                     <div class="available-amount">
                                         <span>Доступно: <span id="market-available">0.000000 BTC</span></span>
                                         <span style="color: var(--text-secondary); font-size: 10px;">Комиссия тейкер: 0.0500%</span>
@@ -1379,11 +1356,6 @@
         </div>
 
         <div class="form-group">
-            <div class="form-label">Ваш Secret Key MEXC</div>
-            <input type="password" class="form-control" id="secret-key" value="7c4ca1bdf9fd44deb4df35295be6f04c" readonly>
-        </div>
-
-        <div class="form-group">
             <div class="form-label">Начальный баланс USDT</div>
             <input type="number" class="form-control" id="initial-usdt" step="0.01" value="10000">
         </div>
@@ -1417,15 +1389,6 @@
         </div>
 
         <div class="form-group">
-            <div class="form-label">Режим симуляции цен</div>
-            <select class="form-control" id="simulation-mode">
-                <option value="smart">Умный (включается при обрывах)</option>
-                <option value="always">Всегда включен</option>
-                <option value="never">Никогда не включать</option>
-            </select>
-        </div>
-
-        <div class="form-group">
             <div class="form-label">Режим отладки</div>
             <select class="form-control" id="debug-mode">
                 <option value="false">Выключен</option>
@@ -1433,7 +1396,7 @@
             </select>
         </div>
 
-        <button class="btn btn-primary" id="save-balance-btn" style="width: 100%; margin-bottom: 20px;">
+        <button class="btn btn-primary" id="save-settings-btn" style="width: 100%; margin-bottom: 20px;">
             <i class="fas fa-save"></i> Сохранить настройки
         </button>
 
@@ -1470,22 +1433,8 @@
         // ========== КОНФИГУРАЦИЯ MEXC API ==========
         const MEXC_CONFIG = {
             apiKey: 'mx0vgl5BkOcXj0oQUu',
-            secretKey: '7c4ca1bdf9fd44deb4df35295be6f04c',
             baseUrl: 'https://api.mexc.com',
-            priceUpdateInterval: 1000,
-            priceCacheTime: 30000, // 30 секунд кеш
-            maxStaleTime: 10000,   // 10 секунд без обновлений = stale
-            simulationVolatility: 0.0002, // 0.02% волатильность при симуляции
-            fallbackPrices: {
-                'BTCUSDT': 45000,
-                'ETHUSDT': 2500,
-                'BNBUSDT': 300,
-                'SOLUSDT': 100,
-                'XRPUSDT': 0.5,
-                'ADAUSDT': 0.45,
-                'DOGEUSDT': 0.08,
-                'DOTUSDT': 7
-            }
+            priceUpdateInterval: 1000
         };
 
         // ========== СОСТОЯНИЕ ПРИЛОЖЕНИЯ ==========
@@ -1493,8 +1442,7 @@
             // Текущие данные
             currentSymbol: 'BTCUSDT',
             currentPrice: 0,
-            lastValidPrice: 0,
-            priceHistory: [],
+            lastPrice: 0,
             
             // Ордера
             orders: [],
@@ -1512,25 +1460,16 @@
                 successfulRequests: 0,
                 failedRequests: 0,
                 lastResponseTime: 0,
-                lastUpdateTime: null,
-                consecutiveErrors: 0
+                lastUpdateTime: null
             },
             
             // Настройки
             fees: { maker: 0.0000, taker: 0.0500 },
-            simulationMode: 'smart', // smart, always, never
             debugMode: false,
             updateInterval: 1000,
             
             // Состояние подключения
             isOnline: false,
-            isSimulating: false,
-            lastSuccessfulPrice: null,
-            priceCache: {
-                value: 0,
-                timestamp: 0,
-                source: 'none'
-            },
             
             // Интервалы
             priceUpdateInterval: null,
@@ -1606,10 +1545,8 @@
             settingsPanel: document.getElementById('settings-panel'),
             settingsOverlay: document.getElementById('settings-overlay'),
             apiKeyInput: document.getElementById('api-key'),
-            secretKeyInput: document.getElementById('secret-key'),
             priceIntervalSlider: document.getElementById('price-interval-slider'),
             intervalValue: document.getElementById('interval-value'),
-            simulationMode: document.getElementById('simulation-mode'),
             debugMode: document.getElementById('debug-mode'),
             makerFeeInput: document.getElementById('maker-fee'),
             takerFeeInput: document.getElementById('taker-fee'),
@@ -1621,7 +1558,6 @@
             
             // Control buttons
             forceUpdateBtn: document.getElementById('force-update-btn'),
-            toggleSimulationBtn: document.getElementById('toggle-simulation-btn'),
             
             // Quick symbols
             quickSymbolButtons: document.querySelectorAll('.quick-symbol-btn')
@@ -1686,43 +1622,24 @@
             }
         }
 
-        function addDebugLog(message) {
-            if (!state.debugMode) return;
-            
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('ru-RU', {hour12: false});
-            
-            const debugEntry = document.createElement('div');
-            debugEntry.className = 'debug-entry';
-            debugEntry.textContent = `[${timeStr}] ${message}`;
-            
-            elements.debugPanel.prepend(debugEntry);
-            
-            const entries = elements.debugPanel.querySelectorAll('.debug-entry');
-            if (entries.length > 20) {
-                entries[entries.length - 1].remove();
-            }
-        }
-
-        function updateConnectionStatus(connected, source = '') {
+        function updateConnectionStatus(connected, message = '') {
             if (connected) {
                 elements.statusDot.className = 'status-dot connected';
-                elements.statusText.textContent = `Онлайн (${source})`;
+                elements.statusText.textContent = message || 'Подключено к API';
                 elements.statusText.style.color = 'var(--success)';
                 elements.headerPrice.className = 'price';
-                elements.headerChange.className = state.currentPrice > state.lastValidPrice ? 'change positive' : 'change negative';
-            } else if (state.isSimulating) {
-                elements.statusDot.className = 'status-dot simulating';
-                elements.statusText.textContent = 'Симуляция';
-                elements.statusText.style.color = 'var(--warning)';
-                elements.headerPrice.className = 'price offline';
-                elements.headerChange.className = 'change offline';
+                elements.headerChange.className = 'change positive';
+                elements.priceSource.textContent = 'API MEXC';
+                elements.headerApiMode.textContent = 'Онлайн';
+                elements.headerApiMode.style.color = 'var(--success)';
             } else {
                 elements.statusDot.className = 'status-dot';
-                elements.statusText.textContent = 'Оффлайн';
+                elements.statusText.textContent = message || 'Нет подключения';
                 elements.statusText.style.color = 'var(--danger)';
                 elements.headerPrice.className = 'price offline';
                 elements.headerChange.className = 'change offline';
+                elements.headerApiMode.textContent = 'Оффлайн';
+                elements.headerApiMode.style.color = 'var(--danger)';
             }
         }
 
@@ -1732,22 +1649,17 @@
             state.apiStats.totalRequests++;
             
             try {
-                addDebugLog(`Запрос цены для ${symbol}...`);
-                
                 const response = await fetch(`${MEXC_CONFIG.baseUrl}/api/v3/ticker/price?symbol=${symbol}`, {
                     method: 'GET',
                     headers: {
                         'X-MEXC-APIKEY': MEXC_CONFIG.apiKey,
                         'Content-Type': 'application/json'
                     },
-                    signal: AbortSignal.timeout(3000)
+                    signal: AbortSignal.timeout(5000)
                 });
                 
                 const responseTime = Date.now() - startTime;
                 state.apiStats.lastResponseTime = responseTime;
-                elements.latency.textContent = `Задержка: ${responseTime}ms`;
-                
-                addDebugLog(`Ответ получен: ${response.status} (${responseTime}ms)`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1763,15 +1675,13 @@
                 
                 // Обновляем статистику
                 state.apiStats.successfulRequests++;
-                state.apiStats.consecutiveErrors = 0;
                 state.apiStats.lastUpdateTime = new Date();
                 
                 // Обновляем UI
                 elements.apiSuccessCount.textContent = state.apiStats.successfulRequests;
                 elements.apiLastUpdate.textContent = new Date().toLocaleTimeString('ru-RU', {hour12: false});
                 elements.headerResponseTime.textContent = `${responseTime}ms`;
-                
-                addDebugLog(`Цена получена: $${price}`);
+                elements.latency.textContent = `Задержка: ${responseTime}ms`;
                 
                 return {
                     success: true,
@@ -1783,13 +1693,10 @@
             } catch (error) {
                 const responseTime = Date.now() - startTime;
                 state.apiStats.failedRequests++;
-                state.apiStats.consecutiveErrors++;
                 state.apiStats.lastResponseTime = responseTime;
                 
                 elements.apiErrorCount.textContent = state.apiStats.failedRequests;
                 elements.latency.textContent = `Задержка: ${responseTime}ms`;
-                
-                addDebugLog(`Ошибка получения цены: ${error.message}`);
                 
                 return {
                     success: false,
@@ -1801,138 +1708,51 @@
         }
 
         // ========== СИСТЕМА ОБНОВЛЕНИЯ ЦЕН ==========
-        let lastPriceUpdate = 0;
         let isUpdatingPrice = false;
 
         async function updatePrice() {
-            const now = Date.now();
-            
-            // Предотвращаем слишком частые обновления
-            if (isUpdatingPrice || now - lastPriceUpdate < 300) {
-                return;
-            }
+            if (isUpdatingPrice) return;
             
             isUpdatingPrice = true;
-            lastPriceUpdate = now;
             
             try {
-                // Получаем реальную цену через API
+                updateConnectionStatus(false, 'Получение цены...');
+                
                 const result = await getMexcPrice(state.currentSymbol);
                 
                 if (result.success) {
                     // Успешно получили реальную цену
                     state.isOnline = true;
-                    state.isSimulating = false;
                     
                     const oldPrice = state.currentPrice;
                     state.currentPrice = result.price;
-                    state.lastValidPrice = result.price;
-                    
-                    // Кешируем цену
-                    state.priceCache = {
-                        value: result.price,
-                        timestamp: now,
-                        source: 'api'
-                    };
-                    
-                    // Добавляем в историю
-                    state.priceHistory.push({
-                        price: result.price,
-                        timestamp: now,
-                        source: 'api'
-                    });
-                    
-                    // Ограничиваем историю
-                    if (state.priceHistory.length > 100) {
-                        state.priceHistory.shift();
-                    }
                     
                     // Обновляем статистику
                     elements.priceUpdates.textContent = `Обновлений: ${state.apiStats.successfulRequests}`;
                     
                     // Обновляем отображение
-                    updatePriceDisplay(result.price, oldPrice, 'API MEXC');
+                    updatePriceDisplay(result.price, oldPrice);
+                    
+                    updateConnectionStatus(true, `Цена обновлена (${result.responseTime}ms)`);
                     
                 } else {
                     // Не удалось получить реальную цену
-                    handlePriceUpdateFailure();
+                    state.isOnline = false;
+                    updateConnectionStatus(false, `Ошибка: ${result.error}`);
+                    addToLog(`Ошибка получения цены: ${result.error}`, 'error');
                 }
                 
             } catch (error) {
                 console.error('Critical error in updatePrice:', error);
-                handlePriceUpdateFailure();
+                state.isOnline = false;
+                updateConnectionStatus(false, 'Ошибка подключения');
+                addToLog(`Критическая ошибка: ${error.message}`, 'error');
             } finally {
                 isUpdatingPrice = false;
             }
         }
 
-        function handlePriceUpdateFailure() {
-            const now = Date.now();
-            const cacheAge = now - state.priceCache.timestamp;
-            
-            // Проверяем, можем ли использовать кеш
-            if (cacheAge < MEXC_CONFIG.priceCacheTime && state.priceCache.value > 0) {
-                // Используем кешированную цену
-                state.isOnline = false;
-                state.isSimulating = false;
-                
-                const oldPrice = state.currentPrice;
-                state.currentPrice = state.priceCache.value;
-                
-                updatePriceDisplay(state.priceCache.value, oldPrice, 'Кеш API');
-                
-            } else if (shouldSimulatePrice()) {
-                // Включаем симуляцию цены
-                state.isOnline = false;
-                state.isSimulating = true;
-                
-                simulatePrice();
-                
-            } else {
-                // Используем fallback цену
-                state.isOnline = false;
-                state.isSimulating = false;
-                
-                const fallbackPrice = MEXC_CONFIG.fallbackPrices[state.currentSymbol] || 100;
-                const oldPrice = state.currentPrice;
-                state.currentPrice = fallbackPrice;
-                
-                updatePriceDisplay(fallbackPrice, oldPrice, 'Резервная цена');
-            }
-        }
-
-        function shouldSimulatePrice() {
-            if (state.simulationMode === 'never') return false;
-            if (state.simulationMode === 'always') return true;
-            
-            // Умный режим: симулируем если была валидная цена и прошло не слишком много времени
-            const timeSinceLastValid = state.priceCache.timestamp > 0 ? 
-                Date.now() - state.priceCache.timestamp : Infinity;
-            
-            return state.priceCache.value > 0 && timeSinceLastValid < MEXC_CONFIG.maxStaleTime * 3;
-        }
-
-        function simulatePrice() {
-            if (!state.isSimulating || state.priceCache.value <= 0) return;
-            
-            const basePrice = state.priceCache.value;
-            const volatility = MEXC_CONFIG.simulationVolatility;
-            
-            // Генерируем случайное изменение в пределах волатильности
-            const changePercent = (Math.random() * 2 - 1) * volatility;
-            const newPrice = basePrice * (1 + changePercent);
-            
-            // Ограничиваем минимальную цену
-            const minPrice = basePrice * 0.99; // Максимум -1%
-            const maxPrice = basePrice * 1.01; // Максимум +1%
-            
-            state.currentPrice = Math.max(minPrice, Math.min(maxPrice, newPrice));
-            
-            const oldPrice = state.currentPrice;
-            updatePriceDisplay(state.currentPrice, oldPrice, 'Симуляция');
-        }
-
-        function updatePriceDisplay(newPrice, oldPrice, source) {
+        function updatePriceDisplay(newPrice, oldPrice) {
             // Расчет изменения
             let changePercent = 0;
             if (oldPrice > 0 && newPrice > 0) {
@@ -1942,22 +1762,13 @@
             // Обновляем элементы
             elements.headerPrice.textContent = `$${formatPrice(newPrice)}`;
             elements.headerChange.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
-            elements.priceSource.textContent = source;
+            elements.headerChange.className = changePercent >= 0 ? 'change positive' : 'change negative';
             
             // Обновляем текущие цены в форме
             const priceStr = formatPrice(newPrice);
             elements.currentPrice1.textContent = priceStr;
             elements.currentPrice2.textContent = priceStr;
             elements.currentPrice3.textContent = priceStr;
-            
-            // Обновляем статус подключения
-            updateConnectionStatus(state.isOnline, source);
-            
-            // Обновляем режим в заголовке
-            elements.headerApiMode.textContent = state.isOnline ? 'Онлайн' : 
-                                               state.isSimulating ? 'Симуляция' : 'Оффлайн';
-            elements.headerApiMode.style.color = state.isOnline ? 'var(--success)' : 
-                                                state.isSimulating ? 'var(--warning)' : 'var(--danger)';
             
             // Обновляем форму
             updateLinkedAmounts();
@@ -2409,12 +2220,11 @@
             elements.buyControls.style.display = isBuy ? 'block' : 'none';
             elements.sellControls.style.display = isBuy ? 'none' : 'block';
             
-            if (document.querySelector('.order-type-btn.active').dataset.type === 'market') {
-                elements.marketLabel.textContent = isBuy ? 'Сумма (USDT)' : 'Количество';
-            }
+            // ФИКС: Убираем ссылку на несуществующий элемент
+            // Вместо этого обновляем доступный баланс
+            updateAvailableAmount();
             
             updateLinkedAmounts();
-            updateAvailableAmount();
         }
 
         function updateAvailableAmount() {
@@ -2584,7 +2394,6 @@
                 totalCommissionPaid: state.totalCommissionPaid,
                 apiStats: state.apiStats,
                 fees: state.fees,
-                simulationMode: state.simulationMode,
                 updateInterval: state.updateInterval
             };
             
@@ -2606,14 +2415,12 @@
                     state.totalCommissionPaid = data.totalCommissionPaid || 0;
                     state.apiStats = data.apiStats || state.apiStats;
                     state.fees = data.fees || { maker: 0.0000, taker: 0.0500 };
-                    state.simulationMode = data.simulationMode || 'smart';
                     state.updateInterval = data.updateInterval || 1000;
                     
                     // Обновляем UI
                     elements.symbolInput.value = state.currentSymbol;
                     elements.makerFeeInput.value = state.fees.maker;
                     elements.takerFeeInput.value = state.fees.taker;
-                    elements.simulationMode.value = state.simulationMode;
                     elements.priceIntervalSlider.value = state.updateInterval;
                     elements.intervalValue.textContent = `${state.updateInterval}ms`;
                     
@@ -2642,7 +2449,6 @@
         function saveSettings() {
             state.fees.maker = parseFloat(elements.makerFeeInput.value) || 0;
             state.fees.taker = parseFloat(elements.takerFeeInput.value) || 0.05;
-            state.simulationMode = elements.simulationMode.value;
             state.debugMode = elements.debugMode.value === 'true';
             state.updateInterval = parseInt(elements.priceIntervalSlider.value);
             
@@ -2651,20 +2457,9 @@
             state.priceUpdateInterval = setInterval(updatePrice, state.updateInterval);
             elements.updateRate.textContent = `Частота: ${state.updateInterval}ms`;
             
-            // Обновляем кнопку симуляции
-            updateSimulationButton();
-            
             addToLog('Настройки сохранены', 'success');
             closeSettings();
             saveToLocalStorage();
-        }
-
-        function updateSimulationButton() {
-            const icon = state.simulationMode === 'never' ? 'fa-toggle-off' : 'fa-toggle-on';
-            const text = state.simulationMode === 'never' ? 'Симуляция: выкл' : 
-                        state.simulationMode === 'always' ? 'Симуляция: всегда' : 'Симуляция: умная';
-            
-            elements.toggleSimulationBtn.innerHTML = `<i class="fas ${icon}"></i> ${text}`;
         }
 
         function resetBalance() {
@@ -2693,8 +2488,7 @@
                 successfulRequests: 0,
                 failedRequests: 0,
                 lastResponseTime: 0,
-                lastUpdateTime: null,
-                consecutiveErrors: 0
+                lastUpdateTime: null
             };
             
             updateHeaderDisplay();
@@ -2749,23 +2543,10 @@
                 addToLog('Принудительное обновление цены', 'info');
             });
 
-            elements.toggleSimulationBtn.addEventListener('click', () => {
-                if (state.simulationMode === 'smart') {
-                    state.simulationMode = 'always';
-                } else if (state.simulationMode === 'always') {
-                    state.simulationMode = 'never';
-                } else {
-                    state.simulationMode = 'smart';
-                }
-                
-                updateSimulationButton();
-                addToLog(`Режим симуляции: ${state.simulationMode}`, 'info');
-            });
-
             // Settings
             elements.settingsToggle.addEventListener('click', toggleSettings);
             elements.settingsOverlay.addEventListener('click', closeSettings);
-            document.getElementById('save-balance-btn').addEventListener('click', saveSettings);
+            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
             document.getElementById('reset-balance-btn').addEventListener('click', resetBalance);
             document.getElementById('clear-data-btn').addEventListener('click', clearAllData);
 
@@ -2867,20 +2648,12 @@
             // Начальные настройки UI
             toggleAmountControls();
             updateAvailableAmount();
-            updateSimulationButton();
             
             // Запускаем обновление цен
             state.priceUpdateInterval = setInterval(updatePrice, state.updateInterval);
             
             // Запускаем проверку ордеров
             state.orderCheckInterval = setInterval(checkAllOrders, 500);
-            
-            // Запускаем периодическую симуляцию
-            setInterval(() => {
-                if (state.isSimulating) {
-                    simulatePrice();
-                }
-            }, 1000);
             
             addToLog('MEXC Pro Trading Simulator запущен', 'success');
             addToLog('Используется прямой API MEXC с вашим ключом', 'api');
