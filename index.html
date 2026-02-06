@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paper Trading Simulator - MEXC API</title>
+    <title>Paper Trading Simulator - Multi Exchange</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -768,7 +768,7 @@
         /* Exchange Selector */
         .exchange-selector {
             display: grid;
-            grid-template-columns: repeat(1, 1fr);
+            grid-template-columns: repeat(7, 1fr);
             gap: 8px;
             margin-bottom: 20px;
         }
@@ -916,7 +916,7 @@
             }
             
             .exchange-selector {
-                grid-template-columns: repeat(1, 1fr);
+                grid-template-columns: repeat(4, 1fr);
             }
             
             .order-type-selector {
@@ -969,12 +969,12 @@
         <div class="header">
             <div class="header-top">
                 <div class="header-title">
-                    <h1><i class="fas fa-chart-line"></i> MEXC Paper Trading Simulator</h1>
-                    <p>Реальный API MEXC с бумажной торговлей</p>
+                    <h1><i class="fas fa-chart-line"></i> Multi Exchange Trading Simulator</h1>
+                    <p>Автоматическое переключение между биржами</p>
                 </div>
                 
                 <div class="header-price-info">
-                    <div class="symbol" id="header-symbol">BTCUSDT</div>
+                    <div class="symbol" id="header-symbol">BTC/USDT</div>
                     <div class="price" id="header-price">$0.00</div>
                     <div class="change" id="header-change">0.00%</div>
                     <div class="connection-status" style="margin-top: 5px;">
@@ -1012,9 +1012,9 @@
                 </div>
                 
                 <div class="stat-card">
-                    <div class="label">Обновлено</div>
-                    <div class="value" id="header-updated">-</div>
-                    <div class="sub-value" id="header-api-source">MEXC API</div>
+                    <div class="label">Активная биржа</div>
+                    <div class="value" id="header-active-exchange">-</div>
+                    <div class="sub-value" id="header-ping">Пинг: -</div>
                 </div>
             </div>
         </div>
@@ -1104,7 +1104,7 @@
                         <div class="log-scroll" id="execution-log">
                             <div class="log-item">
                                 <div class="log-time">--:--:--</div>
-                                <div class="log-message info">Система запущена. Подключение к MEXC API...</div>
+                                <div class="log-message info">Система запущена. Тестирование бирж...</div>
                             </div>
                         </div>
                     </div>
@@ -1336,9 +1336,6 @@
         </div>
     </div>
 
-    <!-- Overlay for settings -->
-    <div class="settings-overlay" id="settings-overlay"></div>
-
     <!-- Settings Panel -->
     <div class="settings-panel" id="settings-panel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1374,8 +1371,13 @@
         </div>
 
         <div class="form-group">
-            <div class="form-label">Интервал обновления цен (мс)</div>
+            <div class="form-label">Интервал обновления (мс)</div>
             <input type="number" class="form-control" id="price-interval" step="100" min="1000" max="10000" value="2000">
+        </div>
+
+        <div class="form-group">
+            <div class="form-label">Таймаут запроса (мс)</div>
+            <input type="number" class="form-control" id="request-timeout" step="100" min="1000" max="10000" value="3000">
         </div>
 
         <button class="btn btn-primary" id="save-balance-btn" style="width: 100%; margin-bottom: 20px;">
@@ -1397,20 +1399,29 @@
         </div>
 
         <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-            <p><strong>API MEXC:</strong></p>
-            <p>• Реальные рыночные цены</p>
-            <p>• Актуальные данные</p>
-            <p>• Без симуляции цен</p>
-            <p style="margin-top: 10px;"><strong>Комиссии MEXC:</strong></p>
-            <p>• Мейкер: 0.0000% (лимитные ордера)</p>
-            <p>• Тейкер: 0.0500% (рыночные ордера)</p>
+            <p><strong>Поддерживаемые биржи:</strong></p>
+            <p>• Binance - приоритет 1 (самая стабильная)</p>
+            <p>• Bybit - приоритет 2</p>
+            <p>• Kraken - приоритет 3</p>
+            <p>• Huobi - приоритет 4</p>
+            <p>• Kucoin - приоритет 5</p>
+            <p>• Gate.io - приоритет 6</p>
+            <p>• MEXC - приоритет 7</p>
+            <p style="margin-top: 10px;"><strong>Автоматическое переключение:</strong></p>
+            <p>• При недоступности биржи автоматически переключается на следующую</p>
+            <p>• Пинг проверяется каждые 30 секунд</p>
+            <p>• Для России все биржи доступны через публичные API</p>
         </div>
     </div>
+
+    <div class="settings-overlay" id="settings-overlay"></div>
 
     <script>
         // ========== CONFIGURATION ==========
         const CONFIG = {
             updateInterval: 2000,
+            requestTimeout: 3000,
+            pingInterval: 30000,
             maxOrders: 100,
             maxHistory: 500,
             initialBalance: {
@@ -1423,34 +1434,163 @@
             }
         };
 
-        // ========== MEXC API CONFIGURATION ==========
-        const MEXC_API = {
-            name: 'MEXC',
-            enabled: true,
-            priceApi: 'https://api.mexc.com/api/v3/ticker/price?symbol=',
-            tickerApi: 'https://api.mexc.com/api/v3/ticker/24hr?symbol=',
-            exchangeInfoApi: 'https://api.mexc.com/api/v3/exchangeInfo',
-            formatSymbol: (symbol) => symbol.toUpperCase(),
-            parsePrice: (data) => {
-                try {
-                    return data && data.price ? parseFloat(data.price) : null;
-                } catch {
-                    return null;
+        // ========== ALL EXCHANGES CONFIGURATION ==========
+        const EXCHANGES = {
+            'binance': {
+                name: 'Binance',
+                enabled: true,
+                priority: 1,
+                workingInRussia: true,
+                priceApi: 'https://api.binance.com/api/v3/ticker/price?symbol=',
+                tickerApi: 'https://api.binance.com/api/v3/ticker/24hr?symbol=',
+                formatSymbol: (symbol) => symbol.toUpperCase(),
+                parsePrice: (data) => {
+                    try {
+                        return data && data.price ? parseFloat(data.price) : null;
+                    } catch {
+                        return null;
+                    }
+                },
+                parse24hrStats: (data) => {
+                    try {
+                        if (data && data.priceChangePercent) {
+                            return {
+                                changePercent: parseFloat(data.priceChangePercent),
+                                lastPrice: parseFloat(data.lastPrice),
+                                volume: parseFloat(data.volume),
+                                quoteVolume: parseFloat(data.quoteVolume)
+                            };
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
                 }
             },
-            parse24hrStats: (data) => {
-                try {
-                    if (data && data.priceChangePercent) {
-                        return {
-                            changePercent: parseFloat(data.priceChangePercent),
-                            lastPrice: parseFloat(data.lastPrice),
-                            volume: parseFloat(data.volume),
-                            quoteVolume: parseFloat(data.quoteVolume)
-                        };
+            'bybit': {
+                name: 'Bybit',
+                enabled: true,
+                priority: 2,
+                workingInRussia: true,
+                priceApi: 'https://api.bybit.com/v5/market/tickers?category=spot&symbol=',
+                formatSymbol: (symbol) => symbol.toUpperCase(),
+                parsePrice: (data) => {
+                    try {
+                        if (data && data.result && data.result.list && data.result.list[0]) {
+                            return parseFloat(data.result.list[0].lastPrice);
+                        }
+                        return null;
+                    } catch {
+                        return null;
                     }
-                    return null;
-                } catch {
-                    return null;
+                }
+            },
+            'kraken': {
+                name: 'Kraken',
+                enabled: true,
+                priority: 3,
+                workingInRussia: true,
+                priceApi: 'https://api.kraken.com/0/public/Ticker?pair=',
+                formatSymbol: (symbol) => {
+                    const symbolMap = {
+                        'BTCUSDT': 'XBTUSDT',
+                        'ETHUSDT': 'ETHUSDT',
+                        'SOLUSDT': 'SOLUSDT',
+                        'ADAUSDT': 'ADAUSDT',
+                        'DOTUSDT': 'DOTUSDT',
+                        'BNBUSDT': 'BNBUSDT',
+                        'XRPUSDT': 'XRPUSDT',
+                        'DOGEUSDT': 'XDGUSDT',
+                        'MATICUSDT': 'MATICUSDT',
+                        'AVAXUSDT': 'AVAXUSDT',
+                        'LTCUSDT': 'LTCUSDT',
+                        'LINKUSDT': 'LINKUSDT',
+                        'UNIUSDT': 'UNIUSDT',
+                        'ATOMUSDT': 'ATOMUSDT',
+                        'ETCUSDT': 'ETCUSDT'
+                    };
+                    return symbolMap[symbol] || symbol.replace('USDT', 'USD');
+                },
+                parsePrice: (data) => {
+                    try {
+                        if (data && data.result && !data.error?.length) {
+                            const key = Object.keys(data.result)[0];
+                            const price = data.result[key]?.c?.[0];
+                            return price ? parseFloat(price) : null;
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
+                }
+            },
+            'huobi': {
+                name: 'Huobi',
+                enabled: true,
+                priority: 4,
+                workingInRussia: true,
+                priceApi: 'https://api.huobi.pro/market/trade?symbol=',
+                formatSymbol: (symbol) => symbol.toLowerCase().replace('usdt', 'usdt'),
+                parsePrice: (data) => {
+                    try {
+                        if (data && data.tick && data.tick.data && data.tick.data[0]) {
+                            return parseFloat(data.tick.data[0].price);
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
+                }
+            },
+            'kucoin': {
+                name: 'Kucoin',
+                enabled: true,
+                priority: 5,
+                workingInRussia: true,
+                priceApi: 'https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=',
+                formatSymbol: (symbol) => symbol.toUpperCase().replace('USDT', '-USDT'),
+                parsePrice: (data) => {
+                    try {
+                        if (data && data.data && data.data.price) {
+                            return parseFloat(data.data.price);
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
+                }
+            },
+            'gateio': {
+                name: 'Gate.io',
+                enabled: true,
+                priority: 6,
+                workingInRussia: true,
+                priceApi: 'https://api.gateio.ws/api/v4/spot/tickers?currency_pair=',
+                formatSymbol: (symbol) => symbol.toUpperCase().replace('USDT', '_USDT'),
+                parsePrice: (data) => {
+                    try {
+                        if (data && data[0] && data[0].last) {
+                            return parseFloat(data[0].last);
+                        }
+                        return null;
+                    } catch {
+                        return null;
+                    }
+                }
+            },
+            'mexc': {
+                name: 'MEXC',
+                enabled: true,
+                priority: 7,
+                workingInRussia: true,
+                priceApi: 'https://api.mexc.com/api/v3/ticker/price?symbol=',
+                formatSymbol: (symbol) => symbol.toUpperCase(),
+                parsePrice: (data) => {
+                    try {
+                        return data && data.price ? parseFloat(data.price) : null;
+                    } catch {
+                        return null;
+                    }
                 }
             }
         };
@@ -1471,6 +1611,7 @@
             lastUpdateTimestamp: null,
             priceHistory: [],
             priceUpdateInterval: null,
+            currentExchange: null,
             exchangeStatus: {},
             isUpdatingPrice: false,
             lastPriceCheck: 0,
@@ -1478,7 +1619,10 @@
             fees: { ...CONFIG.fees },
             totalCommissionPaid: 0,
             availableSymbols: [],
-            symbolInfo: {}
+            symbolInfo: {},
+            exchangePing: {},
+            bestExchange: null,
+            autoSwitchEnabled: true
         };
 
         // ========== DOM ELEMENTS ==========
@@ -1494,8 +1638,8 @@
             headerCryptoValue: document.getElementById('header-crypto-value'),
             headerTotalValue: document.getElementById('header-total-value'),
             headerTotalChange: document.getElementById('header-total-change'),
-            headerUpdated: document.getElementById('header-updated'),
-            headerApiSource: document.getElementById('header-api-source'),
+            headerActiveExchange: document.getElementById('header-active-exchange'),
+            headerPing: document.getElementById('header-ping'),
             exchangeSelector: document.getElementById('exchange-selector'),
             symbolInput: document.getElementById('symbol-input'),
             symbolSearchResults: document.getElementById('symbol-search-results'),
@@ -1528,6 +1672,7 @@
             settingsPanel: document.getElementById('settings-panel'),
             settingsOverlay: document.getElementById('settings-overlay'),
             priceIntervalInput: document.getElementById('price-interval'),
+            requestTimeoutInput: document.getElementById('request-timeout'),
             makerFeeInput: document.getElementById('maker-fee'),
             takerFeeInput: document.getElementById('taker-fee'),
             marketLabel: document.getElementById('market-label'),
@@ -1537,134 +1682,243 @@
             currentPrice3: document.getElementById('current-price-3')
         };
 
-        // ========== MEXC API FUNCTIONS ==========
-        async function testMEXCAPI() {
+        // ========== EXCHANGE MANAGEMENT ==========
+        function updateExchangeStatus(exchangeId, status, ping = null, message = '') {
+            state.exchangeStatus[exchangeId] = {
+                status: status,
+                ping: ping,
+                message: message,
+                lastChecked: new Date(),
+                lastSuccess: status ? new Date() : state.exchangeStatus[exchangeId]?.lastSuccess
+            };
+            
+            if (ping !== null) {
+                state.exchangePing[exchangeId] = ping;
+            }
+            
+            const exchangeBtn = document.querySelector(`.exchange-btn[data-exchange="${exchangeId}"]`);
+            if (exchangeBtn) {
+                if (status) {
+                    exchangeBtn.classList.add('working');
+                    exchangeBtn.classList.remove('failed');
+                    exchangeBtn.title = `Работает${ping ? ` (${ping}ms)` : ''}`;
+                } else {
+                    exchangeBtn.classList.add('failed');
+                    exchangeBtn.classList.remove('working');
+                    exchangeBtn.title = `Недоступен: ${message || 'Ошибка'}`;
+                }
+            }
+        }
+
+        async function testExchangeAPI(exchangeId) {
+            const exchange = EXCHANGES[exchangeId];
+            if (!exchange || !exchange.enabled || !exchange.workingInRussia) return { success: false, ping: null };
+            
             try {
                 const testSymbol = 'BTCUSDT';
-                const priceUrl = MEXC_API.priceApi + testSymbol;
+                const formattedSymbol = exchange.formatSymbol(testSymbol);
+                let testUrl = exchange.priceApi + formattedSymbol;
                 
+                if (exchangeId === 'gateio') {
+                    testUrl = exchange.priceApi + formattedSymbol;
+                }
+                
+                const startTime = performance.now();
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.requestTimeout);
                 
-                const response = await fetch(priceUrl, { 
+                const response = await fetch(testUrl, { 
                     method: 'GET',
                     headers: { 
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                     },
                     signal: controller.signal
                 });
                 
                 clearTimeout(timeoutId);
+                const endTime = performance.now();
+                const ping = Math.round(endTime - startTime);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    updateExchangeStatus(exchangeId, false, ping, `HTTP ${response.status}`);
+                    return { success: false, ping };
                 }
                 
                 const data = await response.json();
-                const price = MEXC_API.parsePrice(data);
+                const price = exchange.parsePrice(data);
                 
                 const isValid = price !== null && price > 0;
-                updateExchangeStatus('mexc', isValid, isValid ? 'API работает' : 'Invalid price');
-                return isValid;
+                updateExchangeStatus(exchangeId, isValid, ping, isValid ? 'OK' : 'Invalid price');
+                return { success: isValid, ping };
                 
             } catch (error) {
-                console.error('Error testing MEXC API:', error);
-                updateExchangeStatus('mexc', false, error.name === 'AbortError' ? 'Timeout' : 'Error');
-                return false;
+                console.error(`Error testing ${exchangeId}:`, error);
+                const ping = null;
+                updateExchangeStatus(exchangeId, false, ping, error.name === 'AbortError' ? 'Timeout' : 'Error');
+                return { success: false, ping };
             }
         }
 
-        async function fetchPriceFromMEXC(symbol) {
+        async function fetchPriceFromExchange(exchangeId, symbol) {
+            const exchange = EXCHANGES[exchangeId];
+            if (!exchange || !exchange.enabled || !exchange.workingInRussia) return null;
+            
             try {
-                const formattedSymbol = MEXC_API.formatSymbol(symbol);
-                const priceUrl = MEXC_API.priceApi + formattedSymbol;
-                const tickerUrl = MEXC_API.tickerApi + formattedSymbol;
+                const formattedSymbol = exchange.formatSymbol(symbol);
+                let url = exchange.priceApi + formattedSymbol;
                 
-                // Увеличиваем таймаут для стабильности
+                const startTime = performance.now();
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.requestTimeout);
                 
-                const [priceResponse, tickerResponse] = await Promise.all([
-                    fetch(priceUrl, {
-                        method: 'GET',
-                        headers: { 'Accept': 'application/json' },
-                        signal: controller.signal
-                    }),
-                    fetch(tickerUrl, {
-                        method: 'GET',
-                        headers: { 'Accept': 'application/json' },
-                        signal: controller.signal
-                    })
-                ]);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    },
+                    signal: controller.signal
+                });
                 
                 clearTimeout(timeoutId);
+                const endTime = performance.now();
+                const ping = Math.round(endTime - startTime);
                 
-                if (!priceResponse.ok || !tickerResponse.ok) {
-                    throw new Error(`HTTP ${priceResponse.status}/${tickerResponse.status}`);
+                if (!response.ok) {
+                    updateExchangeStatus(exchangeId, false, ping, `HTTP ${response.status}`);
+                    return null;
                 }
                 
-                const [priceData, tickerData] = await Promise.all([
-                    priceResponse.json(),
-                    tickerResponse.json()
-                ]);
-                
-                const price = MEXC_API.parsePrice(priceData);
-                const stats = MEXC_API.parse24hrStats(tickerData);
+                const data = await response.json();
+                const price = exchange.parsePrice(data);
                 
                 if (price && price > 0) {
+                    updateExchangeStatus(exchangeId, true, ping, 'OK');
                     return {
                         price: price,
-                        exchange: 'mexc',
-                        source: 'MEXC API',
-                        change24hr: stats ? stats.changePercent : 0
+                        exchange: exchangeId,
+                        source: exchange.name,
+                        ping: ping
                     };
                 }
                 
+                updateExchangeStatus(exchangeId, false, ping, 'Invalid price');
                 return null;
                 
             } catch (error) {
-                console.error('Error fetching price from MEXC:', error);
-                updateExchangeStatus('mexc', false, error.name === 'AbortError' ? 'Timeout' : 'Error');
+                console.error(`Error fetching price from ${exchangeId}:`, error);
+                updateExchangeStatus(exchangeId, false, null, error.name === 'AbortError' ? 'Timeout' : 'Error');
                 return null;
             }
         }
 
-        async function getAvailableSymbols() {
-            try {
-                const response = await fetch(MEXC_API.exchangeInfoApi, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
+        function getSortedExchangesByPriority() {
+            return Object.keys(EXCHANGES)
+                .filter(exchangeId => 
+                    EXCHANGES[exchangeId].enabled && 
+                    EXCHANGES[exchangeId].workingInRussia
+                )
+                .sort((a, b) => {
+                    const statusA = state.exchangeStatus[a];
+                    const statusB = state.exchangeStatus[b];
+                    
+                    // Сначала работающие биржи
+                    if (statusA?.status && !statusB?.status) return -1;
+                    if (!statusA?.status && statusB?.status) return 1;
+                    
+                    // Затем по пингу (если оба работают)
+                    if (statusA?.status && statusB?.status) {
+                        const pingA = statusA.ping || 9999;
+                        const pingB = statusB.ping || 9999;
+                        if (pingA !== pingB) return pingA - pingB;
+                    }
+                    
+                    // Затем по приоритету
+                    return EXCHANGES[a].priority - EXCHANGES[b].priority;
                 });
+        }
+
+        async function getPriceForSymbol(symbol) {
+            const sortedExchanges = getSortedExchangesByPriority();
+            
+            // Пробуем каждую биржу по очереди
+            for (const exchangeId of sortedExchanges) {
+                const exchange = EXCHANGES[exchangeId];
+                const exchangeStatus = state.exchangeStatus[exchangeId];
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                // Пропускаем биржи, которые недавно проверялись и не работают
+                if (exchangeStatus && !exchangeStatus.status) {
+                    const timeSinceLastCheck = Date.now() - new Date(exchangeStatus.lastChecked).getTime();
+                    if (timeSinceLastCheck < 10000) continue; // Пропускаем 10 секунд
                 }
                 
-                const data = await response.json();
-                
-                if (data && data.symbols) {
-                    state.availableSymbols = data.symbols
-                        .filter(symbol => symbol.status === 'TRADING' && symbol.quoteAsset === 'USDT')
-                        .map(symbol => ({
-                            symbol: symbol.symbol,
-                            baseAsset: symbol.baseAsset,
-                            quoteAsset: symbol.quoteAsset,
-                            filters: symbol.filters
-                        }));
-                    
-                    // Create symbol info map
-                    state.symbolInfo = {};
-                    state.availableSymbols.forEach(symbol => {
-                        state.symbolInfo[symbol.symbol] = symbol;
-                    });
-                    
-                    return true;
+                const priceResult = await fetchPriceFromExchange(exchangeId, symbol);
+                if (priceResult) {
+                    state.currentExchange = exchangeId;
+                    state.bestExchange = exchangeId;
+                    return priceResult;
                 }
-                return false;
-                
-            } catch (error) {
-                console.error('Error fetching available symbols:', error);
-                return false;
+            }
+            
+            // Если все биржи недоступны
+            return null;
+        }
+
+        async function testAllExchanges() {
+            addToLog('Тестирование подключения к биржам...', 'info');
+            
+            const testPromises = Object.keys(EXCHANGES)
+                .filter(exchangeId => 
+                    EXCHANGES[exchangeId].enabled && 
+                    EXCHANGES[exchangeId].workingInRussia
+                )
+                .map(async exchangeId => {
+                    const result = await testExchangeAPI(exchangeId);
+                    return { exchangeId, ...result };
+                });
+            
+            const results = await Promise.allSettled(testPromises);
+            
+            let workingExchanges = 0;
+            results.forEach(result => {
+                if (result.status === 'fulfilled') {
+                    const { exchangeId, success, ping } = result.value;
+                    const exchange = EXCHANGES[exchangeId];
+                    
+                    if (success) {
+                        workingExchanges++;
+                        addToLog(`${exchange.name}: ✓ Работает (${ping}ms)`, 'success');
+                    } else {
+                        addToLog(`${exchange.name}: ✗ Недоступен`, 'error');
+                    }
+                }
+            });
+            
+            if (workingExchanges > 0) {
+                addToLog(`Найдено ${workingExchanges} работающих бирж`, 'success');
+                updateBestExchange();
+            } else {
+                addToLog('Нет доступных бирж. Система будет пробовать автоматически', 'error');
+            }
+        }
+
+        function updateBestExchange() {
+            const workingExchanges = Object.keys(state.exchangeStatus)
+                .filter(exchangeId => state.exchangeStatus[exchangeId]?.status)
+                .sort((a, b) => {
+                    const pingA = state.exchangeStatus[a].ping || 9999;
+                    const pingB = state.exchangeStatus[b].ping || 9999;
+                    if (pingA !== pingB) return pingA - pingB;
+                    return EXCHANGES[a].priority - EXCHANGES[b].priority;
+                });
+            
+            if (workingExchanges.length > 0) {
+                state.bestExchange = workingExchanges[0];
+                const exchange = EXCHANGES[state.bestExchange];
+                const ping = state.exchangeStatus[state.bestExchange].ping;
+                elements.headerActiveExchange.textContent = exchange.name;
+                elements.headerPing.textContent = `Пинг: ${ping || '?'}ms`;
             }
         }
 
@@ -1681,31 +1935,35 @@
                 }
                 state.lastPriceCheck = now;
                 
-                // Показываем статус подключения
                 elements.statusDot.className = 'status-dot connecting';
-                elements.statusText.textContent = 'Подключение к MEXC...';
+                elements.statusText.textContent = 'Поиск активной биржи...';
                 elements.statusText.style.color = 'var(--warning)';
                 
-                const priceResult = await fetchPriceFromMEXC(state.currentSymbol);
+                const priceResult = await getPriceForSymbol(state.currentSymbol);
                 
                 if (priceResult && priceResult.price > 0) {
                     const oldPrice = state.currentPrice;
                     state.currentPrice = priceResult.price;
-                    state.priceChange24hr = priceResult.change24hr || 0;
                     state.lastUpdateTimestamp = new Date();
                     
-                    // Update price change display
-                    elements.headerChange.textContent = `${state.priceChange24hr >= 0 ? '+' : ''}${state.priceChange24hr.toFixed(2)}%`;
-                    elements.headerChange.className = `change ${state.priceChange24hr >= 0 ? 'positive' : 'negative'}`;
-                    
-                    elements.headerApiSource.textContent = priceResult.source;
+                    // Обновляем отображение
+                    const changePercent = state.priceChange24hr;
+                    elements.headerChange.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`;
+                    elements.headerChange.className = `change ${changePercent >= 0 ? 'positive' : 'negative'}`;
                     
                     updateConnectionStatus(true, priceResult.source);
+                    
+                    // Обновляем информацию о бирже
+                    elements.headerActiveExchange.textContent = priceResult.source;
+                    if (priceResult.ping) {
+                        elements.headerPing.textContent = `Пинг: ${priceResult.ping}ms`;
+                    }
                     
                     state.priceHistory.push({
                         timestamp: new Date(),
                         price: state.currentPrice,
-                        exchange: priceResult.exchange
+                        exchange: priceResult.exchange,
+                        ping: priceResult.ping
                     });
                     
                     if (state.priceHistory.length > 100) {
@@ -1729,15 +1987,11 @@
                     }, 100);
                     
                 } else {
-                    // Если цены не получены, сбрасываем в 0
                     state.currentPrice = 0;
-                    state.priceChange24hr = 0;
-                    updateConnectionStatus(false, 'Нет соединения с MEXC');
-                    elements.headerApiSource.textContent = 'MEXC API недоступен';
-                    elements.headerChange.textContent = '0.00%';
-                    elements.headerChange.className = 'change';
+                    updateConnectionStatus(false, 'Нет работающих бирж');
+                    elements.headerActiveExchange.textContent = 'Нет связи';
+                    elements.headerPing.textContent = 'Пинг: -';
                     
-                    // Сбрасываем отображение текущих цен
                     elements.currentPrice1.textContent = '0.00';
                     elements.currentPrice2.textContent = '0.00';
                     elements.currentPrice3.textContent = '0.00';
@@ -1745,20 +1999,16 @@
 
             } catch (error) {
                 console.error('Error in updatePrice:', error);
-                // При ошибке сбрасываем цену в 0
                 state.currentPrice = 0;
-                state.priceChange24hr = 0;
-                updateConnectionStatus(false, 'Ошибка MEXC');
-                elements.headerApiSource.textContent = 'Ошибка API';
-                elements.headerChange.textContent = '0.00%';
-                elements.headerChange.className = 'change';
+                updateConnectionStatus(false, 'Ошибка системы');
+                elements.headerActiveExchange.textContent = 'Ошибка';
+                elements.headerPing.textContent = 'Пинг: -';
                 
-                // Сбрасываем отображение текущих цен
                 elements.currentPrice1.textContent = '0.00';
                 elements.currentPrice2.textContent = '0.00';
                 elements.currentPrice3.textContent = '0.00';
                 
-                addToLog(`Ошибка получения цены с MEXC: ${error.message}`, 'error');
+                addToLog(`Ошибка обновления цены: ${error.message}`, 'error');
             } finally {
                 state.isUpdatingPrice = false;
             }
@@ -1776,11 +2026,18 @@
             }
             
             const interval = parseInt(elements.priceIntervalInput.value) || CONFIG.updateInterval;
+            CONFIG.requestTimeout = parseInt(elements.requestTimeoutInput.value) || CONFIG.requestTimeout;
             
             updatePrice();
             
             state.priceUpdateInterval = setInterval(updatePrice, interval);
-            addToLog(`Обновление цен с MEXC каждые ${interval}мс`, 'success');
+            
+            // Периодическая проверка всех бирж
+            setInterval(async () => {
+                await testAllExchanges();
+            }, CONFIG.pingInterval);
+            
+            addToLog(`Обновление каждые ${interval}мс, таймаут ${CONFIG.requestTimeout}мс`, 'success');
         }
 
         // ========== UTILITY FUNCTIONS ==========
@@ -1809,7 +2066,7 @@
         }
 
         function generateOrderId() {
-            return 'MEXC_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3).toUpperCase();
+            return 'ORD' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3).toUpperCase();
         }
 
         function formatPrice(price) {
@@ -1878,7 +2135,7 @@
             }
         }
 
-        // ========== ORDER LOGIC FUNCTIONS ==========
+        // ========== ORDER LOGIC ==========
         function checkAllOrders() {
             if (state.currentPrice <= 0) return;
             
@@ -1909,7 +2166,7 @@
                         state.orders.push(order);
                         state.pendingOrders.splice(i, 1);
                         
-                        addToLog(`Стоп-лимит ${order.id} активирован: цена $${formatPrice(state.currentPrice)} достигла триггера $${formatPrice(order.triggerPrice)}`, 'warning');
+                        addToLog(`Стоп-лимит ${order.id} активирован`, 'warning');
                     }
                 }
             }
@@ -1943,9 +2200,7 @@
                 const ocoOrder = state.pendingOrders[i];
                 
                 if (ocoOrder.status === 'PENDING' && ocoOrder.type === 'OCO') {
-                    
                     const takeProfitOrder = state.orders.find(o => o.ocoGroupId === ocoOrder.id && o.isTakeProfit);
-                    
                     if (!takeProfitOrder) continue;
                     
                     let stopLossTriggered = false;
@@ -1954,22 +2209,18 @@
                     if (ocoOrder.side === 'SELL') {
                         takeProfitTriggered = comparePricesGreaterOrEqual(state.currentPrice, takeProfitOrder.limitPrice);
                         stopLossTriggered = comparePricesLessOrEqual(state.currentPrice, ocoOrder.triggerPrice);
-                        
                     } else {
                         takeProfitTriggered = comparePricesLessOrEqual(state.currentPrice, takeProfitOrder.limitPrice);
                         stopLossTriggered = comparePricesGreaterOrEqual(state.currentPrice, ocoOrder.triggerPrice);
                     }
                     
-                    // Если сработал СТОП-ЛОСС
                     if (stopLossTriggered && !ocoOrder.stopActivated) {
                         ocoOrder.stopActivated = true;
                         ocoOrder.stopActivatedAt = new Date();
                         
-                        addToLog(`OCO стоп-лосс активирован: цена $${formatPrice(state.currentPrice)} достигла триггера $${formatPrice(ocoOrder.triggerPrice)}`, 'warning');
+                        addToLog(`OCO стоп-лосс активирован`, 'warning');
                         
-                        if (takeProfitOrder) {
-                            cancelSingleOrder(takeProfitOrder.id);
-                        }
+                        if (takeProfitOrder) cancelSingleOrder(takeProfitOrder.id);
                         
                         ocoOrder.status = 'ACTIVE';
                         ocoOrder.activated = true;
@@ -1977,22 +2228,18 @@
                         state.pendingOrders.splice(i, 1);
                     }
                     
-                    // Если сработал ТЕЙК-ПРОФИТ
                     if (takeProfitTriggered && !ocoOrder.targetActivated) {
                         ocoOrder.targetActivated = true;
                         ocoOrder.targetActivatedAt = new Date();
                         
-                        addToLog(`OCO тейк-профит активирован: цена $${formatPrice(state.currentPrice)} достигла цели $${formatPrice(takeProfitOrder.limitPrice)}`, 'success');
+                        addToLog(`OCO тейк-профит активирован`, 'success');
                         
                         cancelSingleOrder(ocoOrder.id);
                         
                         if (takeProfitOrder) {
                             executeOrder(takeProfitOrder, takeProfitOrder.limitPrice, false);
-                            
                             const index = state.orders.findIndex(o => o.id === takeProfitOrder.id);
-                            if (index !== -1) {
-                                state.orders.splice(index, 1);
-                            }
+                            if (index !== -1) state.orders.splice(index, 1);
                         }
                     }
                 }
@@ -2009,16 +2256,13 @@
                 const actualCost = executionPrice * boughtQuantity + commission;
                 
                 state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + boughtQuantity;
+                if (order.amount > actualCost) state.balance.USDT += (order.amount - actualCost);
                 
-                if (order.amount > actualCost) {
-                    state.balance.USDT += (order.amount - actualCost);
-                }
-                
-                addToLog(`Исполнен BUY: ${formatQuantity(boughtQuantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(actualCost)} (комиссия: $${formatAmount(commission)})`, 'success');
+                addToLog(`Исполнен BUY: ${formatQuantity(boughtQuantity)} ${baseSymbol} @ $${formatPrice(executionPrice)}`, 'success');
             } else {
                 const soldAmount = executionPrice * order.quantity - commission;
                 state.balance.USDT += soldAmount;
-                addToLog(`Исполнен SELL: ${formatQuantity(order.quantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(soldAmount)} (комиссия: $${formatAmount(commission)})`, 'success');
+                addToLog(`Исполнен SELL: ${formatQuantity(order.quantity)} ${baseSymbol} @ $${formatPrice(executionPrice)}`, 'success');
             }
             
             order.status = 'FILLED';
@@ -2028,10 +2272,7 @@
             order.isMarket = isMarket;
             
             state.orderHistory.unshift(order);
-            
-            if (state.orderHistory.length > 100) {
-                state.orderHistory = state.orderHistory.slice(0, 100);
-            }
+            if (state.orderHistory.length > 100) state.orderHistory = state.orderHistory.slice(0, 100);
             
             updateHeaderDisplay();
             updateTotalValue();
@@ -2055,16 +2296,13 @@
                 const actualCost = executionPrice * boughtQuantity + commission;
                 
                 state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + boughtQuantity;
+                if (order.amount > actualCost) state.balance.USDT += (order.amount - actualCost);
                 
-                if (order.amount > actualCost) {
-                    state.balance.USDT += (order.amount - actualCost);
-                }
-                
-                addToLog(`Рыночный BUY исполнен: ${formatQuantity(boughtQuantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(actualCost)} (комиссия: $${formatAmount(commission)})`, 'success');
+                addToLog(`Рыночный BUY исполнен: ${formatQuantity(boughtQuantity)} ${baseSymbol}`, 'success');
             } else {
                 const soldAmount = executionPrice * order.quantity - commission;
                 state.balance.USDT += soldAmount;
-                addToLog(`Рыночный SELL исполнен: ${formatQuantity(order.quantity)} ${baseSymbol} @ $${formatPrice(executionPrice)} = $${formatAmount(soldAmount)} (комиссия: $${formatAmount(commission)})`, 'success');
+                addToLog(`Рыночный SELL исполнен: ${formatQuantity(order.quantity)} ${baseSymbol}`, 'success');
             }
             
             order.status = 'FILLED';
@@ -2074,10 +2312,7 @@
             order.isMarket = true;
             
             state.orderHistory.unshift(order);
-            
-            if (state.orderHistory.length > 100) {
-                state.orderHistory = state.orderHistory.slice(0, 100);
-            }
+            if (state.orderHistory.length > 100) state.orderHistory = state.orderHistory.slice(0, 100);
             
             updateHeaderDisplay();
             updateTotalValue();
@@ -2130,16 +2365,11 @@
             
             let cancelledCount = 0;
             
-            if (stopLossOrder && cancelSingleOrder(stopLossOrder.id)) {
-                cancelledCount++;
-            }
-            
-            if (takeProfitOrder && cancelSingleOrder(takeProfitOrder.id)) {
-                cancelledCount++;
-            }
+            if (stopLossOrder && cancelSingleOrder(stopLossOrder.id)) cancelledCount++;
+            if (takeProfitOrder && cancelSingleOrder(takeProfitOrder.id)) cancelledCount++;
             
             if (cancelledCount > 0) {
-                addToLog(`OCO группа ${groupId} отменена (${cancelledCount} ордера)`, 'info');
+                addToLog(`OCO группа ${groupId} отменена`, 'info');
                 updateOrdersDisplay();
             }
         }
@@ -2154,7 +2384,6 @@
             const marketPrice = state.currentPrice || 0;
 
             if (orderType === 'market') {
-                // Для рыночных ордеров используем текущую рыночную цену
                 if (side === 'BUY') {
                     amount = parseFloat(elements.buyAmount.value) || 0;
                     if (!amount || amount <= 0) {
@@ -2163,7 +2392,7 @@
                     }
                     
                     if (marketPrice <= 0) {
-                        addToLog('Ошибка: Нет текущей цены для рыночного ордера', 'error');
+                        addToLog('Ошибка: Нет текущей цены', 'error');
                         return;
                     }
                     
@@ -2171,19 +2400,18 @@
                 } else {
                     quantity = parseFloat(elements.sellQuantity.value) || 0;
                     if (!quantity || quantity <= 0) {
-                        addToLog('Ошибка: Введите количество для продажи', 'error');
+                        addToLog('Ошибка: Введите количество', 'error');
                         return;
                     }
                     
                     if (marketPrice <= 0) {
-                        addToLog('Ошибка: Нет текущей цены для рыночного ордера', 'error');
+                        addToLog('Ошибка: Нет текущей цены', 'error');
                         return;
                     }
                     
                     amount = quantity * marketPrice;
                 }
             } else {
-                // Для лимитных ордеров
                 if (side === 'BUY') {
                     quantity = parseFloat(elements.buyQuantity.value) || 0;
                     amount = parseFloat(elements.buyAmount.value) || 0;
@@ -2204,7 +2432,6 @@
             }
 
             if (orderType === 'market') {
-                // Рыночный ордер исполняется сразу
                 const order = {
                     id: generateOrderId(),
                     type: 'MARKET',
@@ -2224,13 +2451,13 @@
                 }
                 
                 executeMarketOrderImmediately(order);
-                addToLog(`Рыночный ордер ${order.id} размещен и исполнен`, 'success');
+                addToLog(`Рыночный ордер ${order.id} исполнен`, 'success');
                 
             } else if (orderType === 'limit') {
                 const price = parseFloat(elements.limitPrice.value) || 0;
                 
                 if (!price || price <= 0) {
-                    addToLog('Ошибка: Введите лимитную цену', 'error');
+                    addToLog('Ошибка: Введите цену', 'error');
                     return;
                 }
                 
@@ -2253,7 +2480,7 @@
                 }
                 
                 state.orders.push(order);
-                addToLog(`Лимитный ордер ${order.id} размещен: ${side} ${formatQuantity(quantity)} @ $${formatPrice(price)}`, 'success');
+                addToLog(`Лимитный ордер ${order.id} размещен`, 'success');
                 
             } else if (orderType === 'stop_limit') {
                 const stopPrice = parseFloat(elements.stopPrice.value);
@@ -2267,24 +2494,6 @@
                 if (!stopLimitPrice || stopLimitPrice <= 0) {
                     addToLog('Ошибка: Введите лимит цену', 'error');
                     return;
-                }
-                
-                if (side === 'BUY') {
-                    if (marketPrice > 0 && stopPrice <= marketPrice) {
-                        addToLog('Предупреждение: Для BUY стоп цена обычно выше текущей', 'warning');
-                    }
-                    if (stopLimitPrice <= stopPrice) {
-                        addToLog('Ошибка: Для BUY лимит цена должна быть выше стоп цены', 'error');
-                        return;
-                    }
-                } else {
-                    if (marketPrice > 0 && stopPrice >= marketPrice) {
-                        addToLog('Предупреждение: Для SELL стоп цена обычно ниже текущей', 'warning');
-                    }
-                    if (stopLimitPrice >= stopPrice) {
-                        addToLog('Ошибка: Для SELL лимит цена должна быть ниже стоп цены', 'error');
-                        return;
-                    }
                 }
                 
                 const order = {
@@ -2308,7 +2517,7 @@
                 }
                 
                 state.pendingOrders.push(order);
-                addToLog(`Стоп-лимит ${order.id} размещен: ${side} ${formatQuantity(quantity)}, стоп $${formatPrice(stopPrice)}, лимит $${formatPrice(stopLimitPrice)}`, 'success');
+                addToLog(`Стоп-лимит ${order.id} размещен`, 'success');
                 
             } else if (orderType === 'oco') {
                 const stopLossTrigger = parseFloat(elements.ocoStopPrice.value);
@@ -2316,49 +2525,18 @@
                 const takeProfitPrice = parseFloat(elements.ocoLimitPrice.value);
                 
                 if (!stopLossTrigger || stopLossTrigger <= 0) {
-                    addToLog('Ошибка: Введите цену триггера стоп-лосса', 'error');
+                    addToLog('Ошибка: Введите триггер стоп-лосса', 'error');
                     return;
                 }
                 
                 if (!stopLossPrice || stopLossPrice <= 0) {
-                    addToLog('Ошибка: Введите цену исполнения стоп-лосса', 'error');
+                    addToLog('Ошибка: Введите цену стоп-лосса', 'error');
                     return;
                 }
                 
                 if (!takeProfitPrice || takeProfitPrice <= 0) {
                     addToLog('Ошибка: Введите цену тейк-профита', 'error');
                     return;
-                }
-                
-                if (side === 'SELL') {
-                    if (marketPrice > 0) {
-                        if (takeProfitPrice <= marketPrice) {
-                            addToLog('Предупреждение: Для SELL OCO тейк-профит должен быть ВЫШЕ текущей цены', 'warning');
-                        }
-                        if (stopLossTrigger >= marketPrice) {
-                            addToLog('Предупреждение: Для SELL OCO триггер стоп-лосса должен быть НИЖЕ текущей цены', 'warning');
-                        }
-                    }
-                    
-                    if (stopLossPrice >= stopLossTrigger) {
-                        addToLog('Ошибка: Для SELL OCO цена исполнения стоп-лосса должна быть НИЖЕ триггера', 'error');
-                        return;
-                    }
-                    
-                } else {
-                    if (marketPrice > 0) {
-                        if (takeProfitPrice >= marketPrice) {
-                            addToLog('Предупреждение: Для BUY OCO тейк-профит должен быть НИЖЕ текущей цены', 'warning');
-                        }
-                        if (stopLossTrigger <= marketPrice) {
-                            addToLog('Предупреждение: Для BUY OCO триггер стоп-лосса должен быть ВЫШЕ текущей цены', 'warning');
-                        }
-                    }
-                    
-                    if (stopLossPrice <= stopLossTrigger) {
-                        addToLog('Ошибка: Для BUY OCO цена исполнения стоп-лосса должна быть ВЫШЕ триггера', 'error');
-                        return;
-                    }
                 }
                 
                 const ocoGroupId = generateOrderId();
@@ -2396,24 +2574,14 @@
                 };
                 
                 if (!checkAndReserveFunds(stopLossOrder)) {
-                    addToLog('Ошибка: Недостаточно средств для OCO', 'error');
+                    addToLog('Ошибка: Недостаточно средств', 'error');
                     return;
                 }
                 
                 state.pendingOrders.push(stopLossOrder);
                 state.orders.push(takeProfitOrder);
                 
-                addToLog(`OCO ордер размещен: ${side} ${formatQuantity(quantity)} ${baseSymbol}`, 'success');
-                
-                if (side === 'SELL') {
-                    addToLog(`  Тейк-профит: $${formatPrice(takeProfitPrice)} (продать при росте)`, 'success');
-                    addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
-                    addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (продать при падении)`, 'warning');
-                } else {
-                    addToLog(`  Тейк-профит: $${formatPrice(takeProfitPrice)} (купить при падении)`, 'success');
-                    addToLog(`  Стоп-лосс триггер: $${formatPrice(stopLossTrigger)}`, 'warning');
-                    addToLog(`  Стоп-лосс цена: $${formatPrice(stopLossPrice)} (купить при росте)`, 'warning');
-                }
+                addToLog(`OCO ордер размещен`, 'success');
             }
 
             clearOrderForm();
@@ -2654,6 +2822,36 @@
             document.getElementById('order-history-table').innerHTML = historyHtml;
         }
 
+        // ========== EXCHANGE SELECTOR ==========
+        function createExchangeSelector() {
+            elements.exchangeSelector.innerHTML = '';
+            
+            const sortedExchanges = Object.keys(EXCHANGES)
+                .filter(exchangeId => EXCHANGES[exchangeId].enabled && EXCHANGES[exchangeId].workingInRussia)
+                .sort((a, b) => EXCHANGES[a].priority - EXCHANGES[b].priority);
+            
+            sortedExchanges.forEach(exchangeId => {
+                const exchange = EXCHANGES[exchangeId];
+                const btn = document.createElement('button');
+                btn.className = `exchange-btn`;
+                btn.dataset.exchange = exchangeId;
+                btn.textContent = exchange.name;
+                btn.title = `Приоритет: ${exchange.priority}`;
+                
+                btn.addEventListener('click', () => {
+                    if (state.exchangeStatus[exchangeId]?.status) {
+                        document.querySelectorAll('.exchange-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        state.currentExchange = exchangeId;
+                        addToLog(`Выбрана биржа: ${exchange.name}`, 'info');
+                        updatePrice();
+                    }
+                });
+                
+                elements.exchangeSelector.appendChild(btn);
+            });
+        }
+
         // ========== EVENT HANDLERS ==========
         function setupEventListeners() {
             elements.orderTypeButtons.forEach(btn => {
@@ -2732,9 +2930,10 @@
             
             elements.updateSymbolBtn.addEventListener('click', updateSymbol);
             
-            // Обновление комиссии при изменении
             elements.makerFeeInput.addEventListener('change', updateFees);
             elements.takerFeeInput.addEventListener('change', updateFees);
+            elements.priceIntervalInput.addEventListener('change', restartPriceUpdates);
+            elements.requestTimeoutInput.addEventListener('change', updateRequestTimeout);
         }
 
         function updateFees() {
@@ -2743,36 +2942,13 @@
             addToLog(`Комиссии обновлены: мейкер ${state.fees.maker}%, тейкер ${state.fees.taker}%`, 'info');
         }
 
-        function updateExchangeStatus(exchangeId, status, message = '') {
-            state.exchangeStatus[exchangeId] = {
-                status: status,
-                message: message,
-                lastChecked: new Date()
-            };
-            
-            const exchangeBtn = document.querySelector(`.exchange-btn[data-exchange="${exchangeId}"]`);
-            if (exchangeBtn) {
-                if (status) {
-                    exchangeBtn.classList.add('working');
-                    exchangeBtn.classList.remove('failed');
-                } else {
-                    exchangeBtn.classList.add('failed');
-                    exchangeBtn.classList.remove('working');
-                }
-            }
+        function restartPriceUpdates() {
+            startPriceUpdates();
         }
 
-        // ========== MEXC SELECTOR ==========
-        function createExchangeSelector() {
-            elements.exchangeSelector.innerHTML = '';
-            
-            const btn = document.createElement('button');
-            btn.className = `exchange-btn active working`;
-            btn.dataset.exchange = 'mexc';
-            btn.textContent = 'MEXC API';
-            btn.title = `Основной источник данных`;
-            
-            elements.exchangeSelector.appendChild(btn);
+        function updateRequestTimeout() {
+            CONFIG.requestTimeout = parseInt(elements.requestTimeoutInput.value) || 3000;
+            addToLog(`Таймаут обновлен: ${CONFIG.requestTimeout}мс`, 'info');
         }
 
         // ========== INITIALIZATION ==========
@@ -2786,10 +2962,9 @@
             updateLinkedAmounts();
             updateAvailableAmount();
             
-            // Test MEXC API in background
+            // Test all exchanges
             setTimeout(async () => {
-                await testMEXCAPI();
-                await getAvailableSymbols();
+                await testAllExchanges();
                 updatePrice();
             }, 1000);
             
@@ -2799,10 +2974,14 @@
                 checkAllOrders();
             }, 1000);
             
-            addToLog('MEXC Paper Trading Simulator запущен', 'success');
-            addToLog('Используется реальный API MEXC', 'info');
-            addToLog('Все цены поступают напрямую с биржи', 'info');
-            addToLog('Торговля бумажная, баланс виртуальный', 'info');
+            addToLog('Multi Exchange Trading Simulator запущен', 'success');
+            addToLog('Поддерживаемые биржи:', 'info');
+            Object.values(EXCHANGES).forEach(exchange => {
+                if (exchange.enabled && exchange.workingInRussia) {
+                    addToLog(`- ${exchange.name} (приоритет ${exchange.priority})`, 'info');
+                }
+            });
+            addToLog('Автоматическое переключение при недоступности бирж', 'info');
         });
 
         // ========== FORM HELPER FUNCTIONS ==========
@@ -2864,7 +3043,6 @@
             const isMarket = orderType === 'market';
             
             if (isMarket) {
-                // Для рыночных ордеров обновляем сумму/количество в реальном времени
                 if (elements.orderSide.value === 'BUY') {
                     const amount = parseFloat(elements.buyAmount.value) || 0;
                     const price = state.currentPrice || 1;
@@ -2885,7 +3063,6 @@
                     }
                 }
             } else {
-                // Для лимитных ордеров
                 if (elements.orderSide.value === 'BUY') {
                     updateBuyQuantityFromAmount();
                 } else {
@@ -2956,7 +3133,6 @@
             const amount = (maxAmount * percent) / 100;
             
             if (orderType === 'market') {
-                // Для рыночных ордеров только сумма
                 elements.buyAmount.value = amount.toFixed(2);
             } else {
                 elements.buyAmount.value = amount.toFixed(2);
@@ -2971,7 +3147,6 @@
             const quantity = (maxQuantity * percent) / 100;
             
             if (orderType === 'market') {
-                // Для рыночных ордеров только количество
                 elements.sellQuantity.value = formatInputPrice(quantity);
             } else {
                 elements.sellQuantity.value = formatInputPrice(quantity);
@@ -2997,11 +3172,6 @@
 
         function updateHeaderDisplay() {
             elements.headerPrice.textContent = `$${formatPrice(state.currentPrice)}`;
-            
-            if (state.lastUpdateTimestamp) {
-                const timeStr = state.lastUpdateTimestamp.toLocaleTimeString('ru-RU', {hour12: false});
-                elements.headerUpdated.textContent = timeStr;
-            }
             
             const baseSymbol = getBaseSymbol(state.currentSymbol);
             const cryptoBalance = state.balance[baseSymbol] || 0;
@@ -3035,12 +3205,12 @@
                 fees: state.fees,
                 totalCommissionPaid: state.totalCommissionPaid
             };
-            localStorage.setItem('mexcPaperTradingData', JSON.stringify(saveData));
+            localStorage.setItem('multiExchangeTradingData', JSON.stringify(saveData));
         }
 
         function loadFromLocalStorage() {
             try {
-                const saved = localStorage.getItem('mexcPaperTradingData');
+                const saved = localStorage.getItem('multiExchangeTradingData');
                 if (saved) {
                     const data = JSON.parse(saved);
                     
@@ -3062,7 +3232,7 @@
                     updateOrdersDisplay();
                     updateTotalValue();
                     
-                    addToLog('Данные загружены из localStorage', 'success');
+                    addToLog('Данные загружены', 'success');
                 }
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -3138,7 +3308,7 @@
                 </div>
             `;
             
-            localStorage.removeItem('mexcPaperTradingData');
+            localStorage.removeItem('multiExchangeTradingData');
             addToLog('Все данные очищены', 'info');
         }
 
