@@ -225,6 +225,32 @@
             color: var(--primary);
         }
 
+        /* Symbol Selector */
+        .symbol-selector {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .symbol-btn {
+            padding: 4px 8px;
+            border: 1px solid var(--dark-border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .symbol-btn.active {
+            border-color: var(--primary);
+            background: rgba(26, 115, 232, 0.1);
+            color: var(--primary);
+        }
+
         /* Main Content */
         .main-content {
             display: flex;
@@ -897,6 +923,37 @@
             background: rgba(255, 165, 2, 0.2);
         }
 
+        /* Symbol Quick Select */
+        .symbol-quick-select {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .quick-symbol-btn {
+            padding: 4px 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--dark-border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-size: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .quick-symbol-btn:hover {
+            background: rgba(26, 115, 232, 0.1);
+            border-color: var(--primary);
+        }
+
+        .quick-symbol-btn.active {
+            background: rgba(26, 115, 232, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
         /* Responsive */
         @media (max-width: 1200px) {
             .main-content {
@@ -956,6 +1013,10 @@
             .api-method-selector {
                 flex-wrap: wrap;
             }
+            
+            .symbol-quick-select {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
     </style>
 </head>
@@ -982,6 +1043,16 @@
                         <button class="api-method-btn" data-method="proxy">Через прокси</button>
                         <button class="api-method-btn" data-method="websocket">WebSocket</button>
                         <button class="api-method-btn" data-method="test">Тест соединения</button>
+                    </div>
+                    <div class="symbol-quick-select">
+                        <button class="quick-symbol-btn" data-symbol="BTCUSDT">BTC</button>
+                        <button class="quick-symbol-btn" data-symbol="ETHUSDT">ETH</button>
+                        <button class="quick-symbol-btn" data-symbol="BNBUSDT">BNB</button>
+                        <button class="quick-symbol-btn" data-symbol="SOLUSDT">SOL</button>
+                        <button class="quick-symbol-btn" data-symbol="XRPUSDT">XRP</button>
+                        <button class="quick-symbol-btn" data-symbol="ADAUSDT">ADA</button>
+                        <button class="quick-symbol-btn" data-symbol="DOGEUSDT">DOGE</button>
+                        <button class="quick-symbol-btn" data-symbol="DOTUSDT">DOT</button>
                     </div>
                 </div>
                 
@@ -1388,8 +1459,8 @@
             <div class="form-label">Прокси для обхода блокировок</div>
             <select class="form-control" id="proxy-select">
                 <option value="none">Без прокси (прямое соединение)</option>
-                <option value="allorigins">allorigins.win</option>
-               <option value="corsproxy">corsproxy.io</option>
+                <option value="allorigins" selected>allorigins.win</option>
+                <option value="corsproxy">corsproxy.io</option>
                 <option value="codetabs">codetabs.com</option>
                 <option value="thingproxy">thingproxy.freeboard.io</option>
                 <option value="corsanywhere">cors-anywhere.herokuapp.com</option>
@@ -1453,6 +1524,13 @@
                 'thingproxy': 'https://thingproxy.freeboard.io/fetch/',
                 'corsanywhere': 'https://cors-anywhere.herokuapp.com/'
             },
+            // Популярные символы на MEXC
+            popularSymbols: [
+                'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT',
+                'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'DOTUSDT',
+                'MATICUSDT', 'SHIBUSDT', 'TRXUSDT', 'LTCUSDT',
+                'AVAXUSDT', 'LINKUSDT', 'UNIUSDT', 'ATOMUSDT'
+            ],
             updateInterval: 1000,
             maxOrders: 100,
             maxHistory: 500,
@@ -1488,7 +1566,7 @@
             apiMethod: 'direct',
             currentApiEndpointIndex: 0,
             currentWsEndpointIndex: 0,
-            proxyType: 'none',
+            proxyType: 'allorigins', // По умолчанию allorigins, так как он работает
             wsConnection: null,
             wsConnected: false,
             wsReconnectAttempts: 0,
@@ -1501,7 +1579,9 @@
                 lastResponseTime: 0
             },
             debugMode: false,
-            connectionTestResults: []
+            connectionTestResults: [],
+            lastWorkingMethod: null,
+            lastWorkingProxy: null
         };
 
         // ========== DOM ЭЛЕМЕНТЫ ==========
@@ -1565,7 +1645,8 @@
             proxySelect: document.getElementById('proxy-select'),
             customProxyGroup: document.getElementById('custom-proxy-group'),
             customProxyUrl: document.getElementById('custom-proxy-url'),
-            debugMode: document.getElementById('debug-mode')
+            debugMode: document.getElementById('debug-mode'),
+            quickSymbolButtons: document.querySelectorAll('.quick-symbol-btn')
         };
 
         // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
@@ -1673,18 +1754,145 @@
             elements.statusText.style.color = connected ? 'var(--success)' : 'var(--danger)';
         }
 
+        // ========== ОСНОВНЫЕ API ФУНКЦИИ ==========
+        async function getMexcPrice(symbol = null) {
+            const startTime = Date.now();
+            const targetSymbol = symbol || state.currentSymbol;
+            
+            try {
+                let url;
+                let methodName;
+                
+                if (state.apiMethod === 'direct') {
+                    // Прямое подключение
+                    url = `https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`;
+                    methodName = 'Прямой запрос';
+                } else if (state.apiMethod === 'proxy') {
+                    // Подключение через прокси
+                    const proxy = state.proxyType;
+                    let proxyUrl;
+                    
+                    if (proxy === 'custom' && elements.customProxyUrl.value) {
+                        proxyUrl = elements.customProxyUrl.value + encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`);
+                    } else if (proxy === 'allorigins') {
+                        proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`)}`;
+                    } else if (proxy === 'corsproxy') {
+                        proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`)}`;
+                    } else if (proxy === 'codetabs') {
+                        proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`)}`;
+                    } else if (proxy === 'thingproxy') {
+                        proxyUrl = `https://thingproxy.freeboard.io/fetch/https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`;
+                    } else {
+                        // cors-anywhere по умолчанию
+                        proxyUrl = `https://cors-anywhere.herokuapp.com/https://api.mexc.com/api/v3/ticker/price?symbol=${targetSymbol}`;
+                    }
+                    
+                    url = proxyUrl;
+                    methodName = `Прокси (${proxy})`;
+                }
+                
+                addDebugLog(`Запрос ${targetSymbol}: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    signal: AbortSignal.timeout(10000)
+                });
+                
+                const responseTime = Date.now() - startTime;
+                addDebugLog(`Ответ ${targetSymbol}: ${response.status}, время: ${responseTime}ms`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addDebugLog(`Данные ${targetSymbol}: ${JSON.stringify(data).substring(0, 100)}...`);
+                
+                if (data && data.price) {
+                    updateApiStats(responseTime, true);
+                    return {
+                        price: parseFloat(data.price),
+                        source: `${methodName} (${responseTime}ms)`,
+                        symbol: targetSymbol
+                    };
+                } else {
+                    throw new Error('Неверный формат ответа');
+                }
+            } catch (error) {
+                const responseTime = Date.now() - startTime;
+                updateApiStats(responseTime, false);
+                addDebugLog(`Ошибка ${targetSymbol}: ${error.message}`);
+                console.log(`MEXC API error for ${targetSymbol}:`, error.message);
+                return null;
+            }
+        }
+
+        // Функция тестирования конкретного символа
+        async function testSymbolConnection(symbol) {
+            const startTime = Date.now();
+            
+            try {
+                // Используем найденный рабочий метод или allorigins по умолчанию
+                const proxy = state.lastWorkingProxy || 'allorigins';
+                let proxyUrl;
+                
+                if (proxy === 'allorigins') {
+                    proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`;
+                } else if (proxy === 'corsproxy') {
+                    proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`;
+                } else {
+                    proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`;
+                }
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    signal: AbortSignal.timeout(5000)
+                });
+                
+                const responseTime = Date.now() - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data && data.price) {
+                        return {
+                            success: true,
+                            price: parseFloat(data.price),
+                            time: responseTime,
+                            symbol: symbol
+                        };
+                    }
+                }
+            } catch (error) {
+                console.log(`Test error for ${symbol}:`, error.message);
+            }
+            
+            return {
+                success: false,
+                price: 0,
+                time: Date.now() - startTime,
+                symbol: symbol
+            };
+        }
+
         // ========== ПРОВЕРКА ПОДКЛЮЧЕНИЯ ==========
         async function testConnection() {
             addToLog('Запуск теста соединения с MEXC...', 'info');
             
             const testResults = [];
-            const symbol = state.currentSymbol.toUpperCase();
+            const symbolsToTest = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT']; // Тестируем несколько символов
             
-            // Тест 1: Прямое подключение к API v3
+            // Тест через allorigins.win (самый надежный для России)
             try {
-                addDebugLog('Тест 1: Прямое подключение к api.mexc.com');
+                addDebugLog('Тест: Подключение через allorigins.win');
                 const startTime = Date.now();
-                const response = await fetch('https://api.mexc.com/api/v3/ticker/price?symbol=BTCUSDT', {
+                const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=BTCUSDT`)}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json'
@@ -1695,95 +1903,35 @@
                 if (response.ok) {
                     const data = await response.json();
                     testResults.push({
-                        method: 'Прямое подключение',
+                        method: 'Прокси allorigins.win',
                         status: 'Успешно',
                         time: responseTime,
-                        price: data.price
+                        price: data.price,
+                        proxy: 'allorigins'
                     });
-                    addToLog(`✓ Прямое подключение: ${responseTime}ms, цена: $${data.price}`, 'success');
-                } else {
-                    testResults.push({
-                        method: 'Прямое подключение',
-                        status: 'Ошибка',
-                        time: responseTime,
-                        error: `HTTP ${response.status}`
-                    });
-                    addToLog(`✗ Прямое подключение: HTTP ${response.status}`, 'error');
-                }
-            } catch (error) {
-                testResults.push({
-                    method: 'Прямое подключение',
-                    status: 'Ошибка',
-                    time: 0,
-                    error: error.message
-                });
-                addToLog(`✗ Прямое подключение: ${error.message}`, 'error');
-            }
-            
-            // Тест 2: Подключение через corsproxy.io
-            try {
-                addDebugLog('Тест 2: Подключение через corsproxy.io');
-                const startTime = Date.now();
-                const response = await fetch('https://corsproxy.io/?https://api.mexc.com/api/v3/ticker/price?symbol=BTCUSDT', {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
+                    addToLog(`✓ allorigins.win: ${responseTime}ms, цена BTC: $${data.price}`, 'success');
+                    
+                    // Сохраняем рабочий метод
+                    state.lastWorkingMethod = 'proxy';
+                    state.lastWorkingProxy = 'allorigins';
+                    state.proxyType = 'allorigins';
+                    
+                    // Тестируем другие символы
+                    for (const symbol of symbolsToTest.slice(1)) {
+                        const symbolTest = await testSymbolConnection(symbol);
+                        if (symbolTest.success) {
+                            addToLog(`✓ ${symbol}: $${symbolTest.price} (${symbolTest.time}ms)`, 'success');
+                        } else {
+                            addToLog(`✗ ${symbol}: не удалось получить цену`, 'warning');
+                        }
                     }
-                });
-                const responseTime = Date.now() - startTime;
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    testResults.push({
-                        method: 'Прокси corsproxy.io',
-                        status: 'Успешно',
-                        time: responseTime,
-                        price: data.price
-                    });
-                    addToLog(`✓ corsproxy.io: ${responseTime}ms, цена: $${data.price}`, 'success');
-                } else {
-                    testResults.push({
-                        method: 'Прокси corsproxy.io',
-                        status: 'Ошибка',
-                        time: responseTime,
-                        error: `HTTP ${response.status}`
-                    });
-                    addToLog(`✗ corsproxy.io: HTTP ${response.status}`, 'error');
-                }
-            } catch (error) {
-                testResults.push({
-                    method: 'Прокси corsproxy.io',
-                    status: 'Ошибка',
-                    time: 0,
-                    error: error.message
-                });
-                addToLog(`✗ corsproxy.io: ${error.message}`, 'error');
-            }
-            
-            // Тест 3: Подключение через allorigins.win
-            try {
-                addDebugLog('Тест 3: Подключение через allorigins.win');
-                const startTime = Date.now();
-                const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.mexc.com/api/v3/ticker/price?symbol=BTCUSDT'), {
-                    method: 'GET'
-                });
-                const responseTime = Date.now() - startTime;
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    testResults.push({
-                        method: 'Прокси allorigins.win',
-                        status: 'Успешно',
-                        time: responseTime,
-                        price: data.price
-                    });
-                    addToLog(`✓ allorigins.win: ${responseTime}ms, цена: $${data.price}`, 'success');
                 } else {
                     testResults.push({
                         method: 'Прокси allorigins.win',
                         status: 'Ошибка',
                         time: responseTime,
-                        error: `HTTP ${response.status}`
+                        error: `HTTP ${response.status}`,
+                        proxy: 'allorigins'
                     });
                     addToLog(`✗ allorigins.win: HTTP ${response.status}`, 'error');
                 }
@@ -1792,16 +1940,17 @@
                     method: 'Прокси allorigins.win',
                     status: 'Ошибка',
                     time: 0,
-                    error: error.message
+                    error: error.message,
+                    proxy: 'allorigins'
                 });
                 addToLog(`✗ allorigins.win: ${error.message}`, 'error');
             }
             
-            // Тест 4: Подключение к альтернативному endpoint
+            // Тест через corsproxy.io
             try {
-                addDebugLog('Тест 4: Подключение к www.mexc.com');
+                addDebugLog('Тест: Подключение через corsproxy.io');
                 const startTime = Date.now();
-                const response = await fetch('https://www.mexc.com/open/api/v2/market/ticker?symbol=BTCUSDT', {
+                const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=BTCUSDT`)}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json'
@@ -1811,40 +1960,38 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.data && data.data[0] && data.data[0].last) {
-                        testResults.push({
-                            method: 'API v2 (www.mexc.com)',
-                            status: 'Успешно',
-                            time: responseTime,
-                            price: data.data[0].last
-                        });
-                        addToLog(`✓ API v2: ${responseTime}ms, цена: $${data.data[0].last}`, 'success');
-                    } else {
-                        testResults.push({
-                            method: 'API v2 (www.mexc.com)',
-                            status: 'Ошибка данных',
-                            time: responseTime,
-                            error: 'Неверный формат ответа'
-                        });
-                        addToLog(`✗ API v2: неверный формат ответа`, 'error');
+                    testResults.push({
+                        method: 'Прокси corsproxy.io',
+                        status: 'Успешно',
+                        time: responseTime,
+                        price: data.price,
+                        proxy: 'corsproxy'
+                    });
+                    addToLog(`✓ corsproxy.io: ${responseTime}ms, цена BTC: $${data.price}`, 'success');
+                    
+                    if (!state.lastWorkingMethod) {
+                        state.lastWorkingMethod = 'proxy';
+                        state.lastWorkingProxy = 'corsproxy';
                     }
                 } else {
                     testResults.push({
-                        method: 'API v2 (www.mexc.com)',
+                        method: 'Прокси corsproxy.io',
                         status: 'Ошибка',
                         time: responseTime,
-                        error: `HTTP ${response.status}`
+                        error: `HTTP ${response.status}`,
+                        proxy: 'corsproxy'
                     });
-                    addToLog(`✗ API v2: HTTP ${response.status}`, 'error');
+                    addToLog(`✗ corsproxy.io: HTTP ${response.status}`, 'error');
                 }
             } catch (error) {
                 testResults.push({
-                    method: 'API v2 (www.mexc.com)',
+                    method: 'Прокси corsproxy.io',
                     status: 'Ошибка',
                     time: 0,
-                    error: error.message
+                    error: error.message,
+                    proxy: 'corsproxy'
                 });
-                addToLog(`✗ API v2: ${error.message}`, 'error');
+                addToLog(`✗ corsproxy.io: ${error.message}`, 'error');
             }
             
             // Анализ результатов
@@ -1858,248 +2005,31 @@
                 );
                 
                 addToLog(`✅ Тест завершен. Найден рабочий метод: ${fastestMethod.method} (${fastestMethod.time}ms)`, 'success');
-                addToLog(`💰 Текущая цена BTC: $${fastestMethod.price}`, 'success');
                 
                 // Автоматически переключаемся на рабочий метод
-                if (fastestMethod.method.includes('Прямое')) {
-                    switchApiMethod('direct');
-                } else if (fastestMethod.method.includes('прокси')) {
-                    switchApiMethod('proxy');
-                    state.proxyType = fastestMethod.method.includes('corsproxy') ? 'corsproxy' : 'allorigins';
-                }
+                switchApiMethod('proxy');
+                state.proxyType = fastestMethod.proxy;
+                elements.proxySelect.value = fastestMethod.proxy;
                 
-                // Обновляем цену
+                // Обновляем текущую цену
                 if (fastestMethod.price) {
                     state.currentPrice = parseFloat(fastestMethod.price);
                     updatePriceDisplay(fastestMethod.price, 0, fastestMethod.method);
+                    
+                    // Обновляем UI для текущего символа
+                    updateAvailableAmount();
+                    updateLinkedAmounts();
                 }
+                
+                // Запускаем обновление цен
+                startPriceUpdates();
+                
             } else {
                 addToLog('❌ Все методы подключения не сработали. Проверьте интернет-соединение.', 'error');
+                updateConnectionStatus(false, 'Нет соединения');
             }
             
             return testResults;
-        }
-
-        // ========== API ФУНКЦИИ ==========
-        async function getMexcPrice() {
-            const startTime = Date.now();
-            const symbol = state.currentSymbol.toUpperCase();
-            
-            try {
-                let url;
-                let methodName;
-                
-                if (state.apiMethod === 'direct') {
-                    // Прямое подключение
-                    url = `https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`;
-                    methodName = 'Прямой запрос';
-                } else if (state.apiMethod === 'proxy') {
-                    // Подключение через прокси
-                    const proxy = state.proxyType;
-                    let proxyUrl;
-                    
-                    if (proxy === 'custom' && elements.customProxyUrl.value) {
-                        proxyUrl = elements.customProxyUrl.value + encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`);
-                    } else if (proxy === 'allorigins') {
-                        proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`;
-                    } else if (proxy === 'corsproxy') {
-                        proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`;
-                    } else if (proxy === 'codetabs') {
-                        proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`)}`;
-                    } else if (proxy === 'thingproxy') {
-                        proxyUrl = `https://thingproxy.freeboard.io/fetch/https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`;
-                    } else {
-                        // cors-anywhere по умолчанию
-                        proxyUrl = `https://cors-anywhere.herokuapp.com/https://api.mexc.com/api/v3/ticker/price?symbol=${symbol}`;
-                    }
-                    
-                    url = proxyUrl;
-                    methodName = `Прокси (${proxy})`;
-                }
-                
-                addDebugLog(`Запрос: ${url}`);
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    signal: AbortSignal.timeout(10000)
-                });
-                
-                const responseTime = Date.now() - startTime;
-                addDebugLog(`Ответ: ${response.status}, время: ${responseTime}ms`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
-                addDebugLog(`Данные: ${JSON.stringify(data).substring(0, 100)}...`);
-                
-                if (data && data.price) {
-                    updateApiStats(responseTime, true);
-                    return {
-                        price: parseFloat(data.price),
-                        source: `${methodName} (${responseTime}ms)`
-                    };
-                } else {
-                    throw new Error('Неверный формат ответа');
-                }
-            } catch (error) {
-                const responseTime = Date.now() - startTime;
-                updateApiStats(responseTime, false);
-                addDebugLog(`Ошибка: ${error.message}`);
-                console.log(`MEXC API error:`, error.message);
-                return null;
-            }
-        }
-
-        // ========== WEB SOCKET ПОДКЛЮЧЕНИЕ ==========
-        function connectWebSocket() {
-            if (state.wsConnection) {
-                if (state.wsConnection.readyState === WebSocket.OPEN) {
-                    return;
-                } else if (state.wsConnection.readyState === WebSocket.CONNECTING) {
-                    addDebugLog('WebSocket уже подключается');
-                    return;
-                }
-            }
-            
-            try {
-                const wsUrl = MEXC_CONFIG.wsEndpoints[state.currentWsEndpointIndex];
-                addDebugLog(`Подключение WebSocket: ${wsUrl}`);
-                
-                state.wsConnection = new WebSocket(wsUrl);
-                elements.wsStatus.textContent = 'WS: Подключение...';
-                elements.wsStatus.style.color = 'var(--warning)';
-                
-                state.wsConnection.onopen = () => {
-                    state.wsConnected = true;
-                    state.wsReconnectAttempts = 0;
-                    
-                    elements.wsStatus.textContent = 'WS: Подключено';
-                    elements.wsStatus.style.color = 'var(--success)';
-                    
-                    addToLog(`WebSocket подключен к ${wsUrl}`, 'websocket');
-                    addDebugLog('WebSocket соединение установлено');
-                    
-                    // Подписываемся на тикер
-                    subscribeToTicker(state.currentSymbol.toLowerCase());
-                };
-                
-                state.wsConnection.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        addDebugLog(`WS сообщение: ${JSON.stringify(data).substring(0, 200)}`);
-                        
-                        if (data.pong) {
-                            // Ответ на пинг
-                            const latency = Date.now() - data.pong;
-                            updateApiStats(latency, true);
-                            return;
-                        }
-                        
-                        if (data.msg && data.code === 0) {
-                            // Успешная подписка
-                            addDebugLog(`WS подписка: ${data.msg}`);
-                            return;
-                        }
-                        
-                        if (data.c && data.s && data.p) {
-                            // Данные тикера
-                            const symbol = data.s.toUpperCase();
-                            const price = parseFloat(data.p);
-                            
-                            if (symbol === state.currentSymbol.toUpperCase() && price > 0) {
-                                const responseTime = Date.now() - (data.E || Date.now());
-                                updateApiStats(responseTime, true);
-                                
-                                const oldPrice = state.currentPrice;
-                                state.currentPrice = price;
-                                state.lastUpdateTimestamp = new Date();
-                                
-                                // Расчет изменения цены
-                                let changePercent = 0;
-                                if (oldPrice > 0 && state.currentPrice > 0) {
-                                    changePercent = ((state.currentPrice - oldPrice) / oldPrice) * 100;
-                                }
-                                
-                                // Обновление UI
-                                updatePriceDisplay(price, changePercent, `WebSocket (${responseTime}ms)`);
-                                checkAllOrders();
-                            }
-                        }
-                        
-                    } catch (error) {
-                        addDebugLog(`Ошибка парсинга WS: ${error.message}`);
-                    }
-                };
-                
-                state.wsConnection.onerror = (error) => {
-                    state.wsConnected = false;
-                    elements.wsStatus.textContent = 'WS: Ошибка';
-                    elements.wsStatus.style.color = 'var(--danger)';
-                    addDebugLog(`WS ошибка: ${error}`);
-                };
-                
-                state.wsConnection.onclose = () => {
-                    state.wsConnected = false;
-                    elements.wsStatus.textContent = 'WS: Отключено';
-                    elements.wsStatus.style.color = 'var(--danger)';
-                    addDebugLog('WebSocket соединение закрыто');
-                    
-                    // Пытаемся переподключиться
-                    if (state.wsReconnectAttempts < state.maxWsReconnectAttempts) {
-                        state.wsReconnectAttempts++;
-                        const delay = Math.min(3000 * state.wsReconnectAttempts, 15000);
-                        
-                        addToLog(`Попытка переподключения WebSocket ${state.wsReconnectAttempts}/${state.maxWsReconnectAttempts} через ${delay}ms`, 'warning');
-                        
-                        setTimeout(() => {
-                            connectWebSocket();
-                        }, delay);
-                    } else {
-                        addToLog('Превышено максимальное количество попыток переподключения WebSocket', 'error');
-                        switchApiMethod('direct');
-                    }
-                };
-                
-            } catch (error) {
-                addDebugLog(`Ошибка создания WS: ${error.message}`);
-                addToLog(`Ошибка создания WebSocket: ${error.message}`, 'error');
-            }
-        }
-
-        function subscribeToTicker(symbol) {
-            if (!state.wsConnection || state.wsConnection.readyState !== WebSocket.OPEN) {
-                addDebugLog('WebSocket не готов для подписки');
-                return;
-            }
-            
-            // Формат подписки для MEXC WebSocket
-            const subscribeMsg = {
-                method: 'SUBSCRIPTION',
-                params: [`spot@public.miniTicker.v3.api@${symbol}@UTC+8`],
-                id: Date.now()
-            };
-            
-            addDebugLog(`Отправка подписки: ${JSON.stringify(subscribeMsg)}`);
-            state.wsConnection.send(JSON.stringify(subscribeMsg));
-        }
-
-        function unsubscribeFromTicker(symbol) {
-            if (!state.wsConnection || state.wsConnection.readyState !== WebSocket.OPEN) {
-                return;
-            }
-            
-            const unsubscribeMsg = {
-                method: 'UNSUBSCRIBE',
-                params: [`spot@public.miniTicker.v3.api@${symbol}@UTC+8`],
-                id: Date.now()
-            };
-            
-            state.wsConnection.send(JSON.stringify(unsubscribeMsg));
         }
 
         // ========== ОБНОВЛЕНИЕ ЦЕН ==========
@@ -2146,6 +2076,12 @@
                     // Не удалось получить цену
                     handlePriceUpdateError();
                     addDebugLog('Не удалось получить цену');
+                    
+                    // Пытаемся переключиться на рабочий метод из теста
+                    if (state.lastWorkingMethod && state.lastWorkingMethod !== state.apiMethod) {
+                        addToLog('Автоматическое переключение на рабочий метод...', 'warning');
+                        switchApiMethod(state.lastWorkingMethod);
+                    }
                 }
                 
             } catch (error) {
@@ -2211,7 +2147,64 @@
             }
         }
 
-        // ========== УПРАВЛЕНИЕ ОРДЕРАМИ (Вернул OCO) ==========
+        // ========== УПРАВЛЕНИЕ СИМВОЛАМИ ==========
+        async function updateSymbol() {
+            const symbol = elements.symbolInput.value.trim().toUpperCase();
+            if (symbol && symbol.length >= 3) {
+                // Отписываемся от старого символа в WebSocket
+                if (state.wsConnected && state.wsConnection) {
+                    unsubscribeFromTicker(state.currentSymbol.toLowerCase());
+                }
+                
+                // Обновляем UI
+                elements.headerSymbol.textContent = `${getBaseSymbol(symbol)}/USDT`;
+                elements.headerCryptoLabel.textContent = `Баланс ${getBaseSymbol(symbol)}`;
+                
+                // Обновляем кнопки быстрого выбора
+                updateQuickSymbolButtons(symbol);
+                
+                // Сохраняем старый символ для лога
+                const oldSymbol = state.currentSymbol;
+                
+                // Обновляем состояние
+                state.currentSymbol = symbol;
+                state.currentPrice = 0;
+                state.lastPrice = 0;
+                
+                addToLog(`Символ изменен: ${oldSymbol} → ${symbol}`, 'info');
+                addDebugLog(`Смена символа: ${oldSymbol} → ${symbol}`);
+                
+                // Подписываемся на новый символ в WebSocket
+                if (state.wsConnected && state.wsConnection) {
+                    subscribeToTicker(symbol.toLowerCase());
+                }
+                
+                // Обновляем доступный баланс
+                updateAvailableAmount();
+                
+                // Получаем цену для нового символа
+                if (state.apiMethod !== 'websocket') {
+                    await updatePrice();
+                } else {
+                    // Для WebSocket ждем обновления
+                    updateConnectionStatus(true, 'Ожидание данных WebSocket...');
+                }
+                
+                // Обновляем форму
+                updateHeaderDisplay();
+            }
+        }
+
+        function updateQuickSymbolButtons(activeSymbol) {
+            elements.quickSymbolButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.symbol === activeSymbol) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // ========== УПРАВЛЕНИЕ ОРДЕРАМИ ==========
         function generateOrderId() {
             return 'MEXC_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 3).toUpperCase();
         }
@@ -3130,33 +3123,6 @@
             }
         }
 
-        function updateSymbol() {
-            const symbol = elements.symbolInput.value.trim().toUpperCase();
-            if (symbol && symbol.length >= 3) {
-                // Отписываемся от старого символа в WebSocket
-                if (state.wsConnected && state.wsConnection) {
-                    unsubscribeFromTicker(state.currentSymbol.toLowerCase());
-                }
-                
-                state.currentSymbol = symbol;
-                const baseSymbol = getBaseSymbol(symbol);
-                elements.headerSymbol.textContent = `${baseSymbol}/USDT`;
-                elements.headerCryptoLabel.textContent = `Баланс ${baseSymbol}`;
-                addToLog(`Символ изменен на: ${symbol}`, 'info');
-                state.currentPrice = 0;
-                state.lastPrice = 0;
-                
-                // Подписываемся на новый символ в WebSocket
-                if (state.wsConnected && state.wsConnection) {
-                    subscribeToTicker(symbol.toLowerCase());
-                }
-                
-                updateHeaderDisplay();
-                updateAvailableAmount();
-                updatePrice();
-            }
-        }
-
         function updateHeaderDisplay() {
             if (state.currentPrice > 0) {
                 elements.headerPrice.textContent = `$${formatPrice(state.currentPrice)}`;
@@ -3237,7 +3203,9 @@
                 fees: state.fees,
                 totalCommissionPaid: state.totalCommissionPaid,
                 apiMethod: state.apiMethod,
-                proxyType: state.proxyType
+                proxyType: state.proxyType,
+                lastWorkingMethod: state.lastWorkingMethod,
+                lastWorkingProxy: state.lastWorkingProxy
             };
             localStorage.setItem('mexcTradingData', JSON.stringify(saveData));
         }
@@ -3258,7 +3226,9 @@
                     state.fees = data.fees || { ...MEXC_CONFIG.fees };
                     state.totalCommissionPaid = data.totalCommissionPaid || 0;
                     state.apiMethod = data.apiMethod || 'direct';
-                    state.proxyType = data.proxyType || 'none';
+                    state.proxyType = data.proxyType || 'allorigins';
+                    state.lastWorkingMethod = data.lastWorkingMethod || 'proxy';
+                    state.lastWorkingProxy = data.lastWorkingProxy || 'allorigins';
                     
                     elements.symbolInput.value = state.currentSymbol;
                     elements.makerFeeInput.value = state.fees.maker;
@@ -3269,6 +3239,7 @@
                     updateOrdersDisplay();
                     updateTotalValue();
                     updateApiMethodButtons();
+                    updateQuickSymbolButtons(state.currentSymbol);
                     
                     addToLog('Данные загружены из localStorage', 'success');
                 }
@@ -3318,7 +3289,7 @@
                 testConnection();
             } else {
                 startPriceUpdates();
-                updatePrice();
+                setTimeout(() => updatePrice(), 100);
             }
         }
 
@@ -3440,6 +3411,13 @@
 
             elements.testConnectionBtn.addEventListener('click', testConnection);
 
+            elements.quickSymbolButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    elements.symbolInput.value = btn.dataset.symbol;
+                    updateSymbol();
+                });
+            });
+
             elements.proxySelect.addEventListener('change', function() {
                 if (this.value === 'custom') {
                     elements.customProxyGroup.style.display = 'block';
@@ -3551,9 +3529,16 @@
             toggleAmountControls();
             updateLinkedAmounts();
             updateAvailableAmount();
+            updateQuickSymbolButtons(state.currentSymbol);
             
-            // Запускаем прямое подключение по умолчанию
-            startPriceUpdates();
+            // Устанавливаем allorigins как прокси по умолчанию (работает в России)
+            state.proxyType = 'allorigins';
+            elements.proxySelect.value = 'allorigins';
+            state.lastWorkingMethod = 'proxy';
+            state.lastWorkingProxy = 'allorigins';
+            
+            // Запускаем прямое подключение через прокси
+            switchApiMethod('proxy');
             
             // Проверяем ордера каждые 500мс
             setInterval(() => {
@@ -3561,13 +3546,13 @@
             }, 500);
             
             addToLog('MEXC Trading Simulator запущен', 'success');
-            addToLog(`Метод API: ${state.apiMethod.toUpperCase()}`, 'info');
-            addToLog('Используются реальные цены с MEXC', 'info');
+            addToLog(`Метод API: ${state.apiMethod.toUpperCase()} (${state.proxyType})`, 'info');
+            addToLog('Используются реальные цены с MEXC через allorigins.win', 'info');
             
             // Начальный запрос цены
             setTimeout(() => {
                 updatePrice();
-            }, 500);
+            }, 1000);
         });
 
         // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
