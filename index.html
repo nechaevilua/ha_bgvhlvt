@@ -367,6 +367,11 @@
             color: var(--warning);
         }
 
+        .status-touched {
+            background: rgba(255, 165, 2, 0.15);
+            color: var(--warning);
+        }
+
         .side-buy {
             background: rgba(0, 210, 122, 0.1);
             color: var(--success);
@@ -2195,55 +2200,117 @@
             }
         }
 
+        // ========== ИСПРАВЛЕННАЯ ЛОГИКА OCO ОРДЕРОВ ==========
         function checkOCOOrders() {
-            for (let i = state.pendingOrders.length - 1; i >= 0; i--) {
-                const ocoOrder = state.pendingOrders[i];
+            const ocoGroups = new Map();
+            
+            // Группируем OCO ордера по groupId
+            [...state.orders, ...state.pendingOrders].forEach(order => {
+                if (order.ocoGroupId) {
+                    if (!ocoGroups.has(order.ocoGroupId)) {
+                        ocoGroups.set(order.ocoGroupId, []);
+                    }
+                    ocoGroups.get(order.ocoGroupId).push(order);
+                }
+            });
+            
+            // Проверяем каждую группу OCO
+            ocoGroups.forEach((orders, groupId) => {
+                const takeProfitOrder = orders.find(o => o.isTakeProfit);
+                const stopLossOrder = orders.find(o => o.isStopLoss);
                 
-                if (ocoOrder.status === 'PENDING' && ocoOrder.type === 'OCO') {
-                    const takeProfitOrder = state.orders.find(o => o.ocoGroupId === ocoOrder.id && o.isTakeProfit);
-                    if (!takeProfitOrder) continue;
-                    
-                    let stopLossTriggered = false;
-                    let takeProfitTriggered = false;
-                    
-                    if (ocoOrder.side === 'SELL') {
-                        takeProfitTriggered = comparePricesGreaterOrEqual(state.currentPrice, takeProfitOrder.limitPrice);
-                        stopLossTriggered = comparePricesLessOrEqual(state.currentPrice, ocoOrder.triggerPrice);
-                    } else {
+                if (!takeProfitOrder || !stopLossOrder) return;
+                
+                let stopLossTouched = false;
+                let takeProfitTriggered = false;
+                let stopLossTriggered = false;
+                
+                // Проверяем тейк-профит (лимитный ордер)
+                if (takeProfitOrder.status === 'ACTIVE') {
+                    if (takeProfitOrder.side === 'BUY') {
                         takeProfitTriggered = comparePricesLessOrEqual(state.currentPrice, takeProfitOrder.limitPrice);
-                        stopLossTriggered = comparePricesGreaterOrEqual(state.currentPrice, ocoOrder.triggerPrice);
+                    } else {
+                        takeProfitTriggered = comparePricesGreaterOrEqual(state.currentPrice, takeProfitOrder.limitPrice);
                     }
-                    
-                    if (stopLossTriggered && !ocoOrder.stopActivated) {
-                        ocoOrder.stopActivated = true;
-                        ocoOrder.stopActivatedAt = new Date();
+                }
+                
+                // Проверяем стоп-лосс (стоп-лимитный ордер)
+                if (stopLossOrder.type === 'STOP_LIMIT') {
+                    if (stopLossOrder.side === 'BUY') {
+                        // Для BUY: если цена >= стоп-цены, стоп задет
+                        stopLossTouched = comparePricesGreaterOrEqual(state.currentPrice, stopLossOrder.triggerPrice);
                         
-                        addToLog(`OCO стоп-лосс активирован`, 'warning');
+                        // Для BUY: если цена достигла стоп-цены и ордер еще не активирован
+                        if (stopLossOrder.status === 'PENDING') {
+                            stopLossTriggered = comparePricesGreaterOrEqual(state.currentPrice, stopLossOrder.triggerPrice);
+                        }
+                    } else {
+                        // Для SELL: если цена <= стоп-цены, стоп задет
+                        stopLossTouched = comparePricesLessOrEqual(state.currentPrice, stopLossOrder.triggerPrice);
                         
-                        if (takeProfitOrder) cancelSingleOrder(takeProfitOrder.id);
-                        
-                        ocoOrder.status = 'ACTIVE';
-                        ocoOrder.activated = true;
-                        state.orders.push(ocoOrder);
-                        state.pendingOrders.splice(i, 1);
-                    }
-                    
-                    if (takeProfitTriggered && !ocoOrder.targetActivated) {
-                        ocoOrder.targetActivated = true;
-                        ocoOrder.targetActivatedAt = new Date();
-                        
-                        addToLog(`OCO тейк-профит активирован`, 'success');
-                        
-                        cancelSingleOrder(ocoOrder.id);
-                        
-                        if (takeProfitOrder) {
-                            executeOrder(takeProfitOrder, takeProfitOrder.limitPrice, false);
-                            const index = state.orders.findIndex(o => o.id === takeProfitOrder.id);
-                            if (index !== -1) state.orders.splice(index, 1);
+                        // Для SELL: если цена достигла стоп-цены и ордер еще не активирован
+                        if (stopLossOrder.status === 'PENDING') {
+                            stopLossTriggered = comparePricesLessOrEqual(state.currentPrice, stopLossOrder.triggerPrice);
                         }
                     }
                 }
-            }
+                
+                // Обновляем статус "Стоп задет"
+                if (stopLossTouched && !stopLossOrder.stopTouched) {
+                    stopLossOrder.stopTouched = true;
+                    stopLossOrder.stopTouchedAt = new Date();
+                    addToLog(`OCO ${groupId}: Стоп-лосс задет (${stopLossOrder.side === 'BUY' ? 'BUY' : 'SELL'} @ $${formatPrice(stopLossOrder.triggerPrice)})`, 'warning');
+                    updateOrdersDisplay();
+                }
+                
+                // Обработка срабатывания тейк-профита
+                if (takeProfitTriggered && !takeProfitOrder.executedAt) {
+                    addToLog(`OCO ${groupId}: Тейк-профит сработал (${takeProfitOrder.side === 'BUY' ? 'BUY' : 'SELL'} @ $${formatPrice(takeProfitOrder.limitPrice)})`, 'success');
+                    
+                    // Исполняем тейк-профит
+                    executeOrder(takeProfitOrder, takeProfitOrder.limitPrice, false);
+                    
+                    // Отменяем стоп-лосс
+                    cancelSingleOrder(stopLossOrder.id);
+                    
+                    // Удаляем ордера из массивов
+                    state.orders = state.orders.filter(o => o.id !== takeProfitOrder.id);
+                    state.pendingOrders = state.pendingOrders.filter(o => o.id !== stopLossOrder.id);
+                }
+                
+                // Обработка срабатывания стоп-лосса
+                if (stopLossTriggered && !stopLossOrder.activated) {
+                    addToLog(`OCO ${groupId}: Стоп-лосс сработал (${stopLossOrder.side === 'BUY' ? 'BUY' : 'SELL'} @ $${formatPrice(stopLossOrder.triggerPrice)})`, 'warning');
+                    
+                    // Активируем стоп-лимит
+                    stopLossOrder.status = 'ACTIVE';
+                    stopLossOrder.activated = true;
+                    stopLossOrder.activatedAt = new Date();
+                    
+                    // Перемещаем из pending в активные
+                    const pendingIndex = state.pendingOrders.findIndex(o => o.id === stopLossOrder.id);
+                    if (pendingIndex !== -1) {
+                        state.pendingOrders.splice(pendingIndex, 1);
+                        state.orders.push(stopLossOrder);
+                    }
+                    
+                    // Отменяем тейк-профит
+                    cancelSingleOrder(takeProfitOrder.id);
+                    
+                    // Проверяем сразу на исполнение
+                    let shouldExecuteStopLoss = false;
+                    if (stopLossOrder.side === 'BUY') {
+                        shouldExecuteStopLoss = comparePricesLessOrEqual(state.currentPrice, stopLossOrder.limitPrice);
+                    } else {
+                        shouldExecuteStopLoss = comparePricesGreaterOrEqual(state.currentPrice, stopLossOrder.limitPrice);
+                    }
+                    
+                    if (shouldExecuteStopLoss) {
+                        executeOrder(stopLossOrder, stopLossOrder.limitPrice, false);
+                        state.orders = state.orders.filter(o => o.id !== stopLossOrder.id);
+                    }
+                }
+            });
         }
 
         function executeOrder(order, executionPrice, isMarket = false) {
@@ -2332,10 +2399,13 @@
             
             const baseSymbol = order.baseSymbol || getBaseSymbol(order.symbol);
             
-            if (order.side === 'BUY') {
-                state.balance.USDT += order.amount;
-            } else {
-                state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + order.quantity;
+            // Возвращаем средства только если ордер еще не исполнен
+            if (order.status !== 'FILLED') {
+                if (order.side === 'BUY') {
+                    state.balance.USDT += order.amount;
+                } else {
+                    state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + order.quantity;
+                }
             }
             
             order.status = 'CANCELLED';
@@ -2359,19 +2429,51 @@
             return true;
         }
 
+        // ========== ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТМЕНЫ OCO ГРУППЫ ==========
         function cancelOCOGroup(groupId) {
-            const stopLossOrder = state.pendingOrders.find(o => o.ocoGroupId === groupId && o.isStopLoss);
+            // Находим все ордера с этим groupId
             const takeProfitOrder = state.orders.find(o => o.ocoGroupId === groupId && o.isTakeProfit);
+            const stopLossOrder = state.pendingOrders.find(o => o.ocoGroupId === groupId && o.isStopLoss);
             
             let cancelledCount = 0;
             
-            if (stopLossOrder && cancelSingleOrder(stopLossOrder.id)) cancelledCount++;
-            if (takeProfitOrder && cancelSingleOrder(takeProfitOrder.id)) cancelledCount++;
+            // Освобождаем средства только один раз (по stopLossOrder)
+            if (stopLossOrder) {
+                const baseSymbol = stopLossOrder.baseSymbol || getBaseSymbol(stopLossOrder.symbol);
+                
+                if (stopLossOrder.side === 'BUY') {
+                    state.balance.USDT += stopLossOrder.amount;
+                } else {
+                    state.balance[baseSymbol] = (state.balance[baseSymbol] || 0) + stopLossOrder.quantity;
+                }
+            }
+            
+            // Отменяем и удаляем оба ордера
+            if (takeProfitOrder) {
+                takeProfitOrder.status = 'CANCELLED';
+                takeProfitOrder.cancelledAt = new Date();
+                state.orderHistory.unshift(takeProfitOrder);
+                state.orders = state.orders.filter(o => o.id !== takeProfitOrder.id);
+                cancelledCount++;
+            }
+            
+            if (stopLossOrder) {
+                stopLossOrder.status = 'CANCELLED';
+                stopLossOrder.cancelledAt = new Date();
+                state.orderHistory.unshift(stopLossOrder);
+                state.pendingOrders = state.pendingOrders.filter(o => o.id !== stopLossOrder.id);
+                cancelledCount++;
+            }
             
             if (cancelledCount > 0) {
                 addToLog(`OCO группа ${groupId} отменена`, 'info');
                 updateOrdersDisplay();
+                updateHeaderDisplay();
+                updateTotalValue();
+                saveToLocalStorage();
             }
+            
+            return cancelledCount > 0;
         }
 
         // ========== TRADING FORM FUNCTIONS ==========
@@ -2541,9 +2643,10 @@
                 
                 const ocoGroupId = generateOrderId();
                 
+                // Создаем СТОП-ЛИМИТНЫЙ ордер (Stop Loss)
                 const stopLossOrder = {
                     id: generateOrderId(),
-                    type: 'OCO',
+                    type: 'STOP_LIMIT',
                     side: side,
                     symbol: state.currentSymbol,
                     baseSymbol: baseSymbol,
@@ -2554,10 +2657,13 @@
                     status: 'PENDING',
                     createdAt: new Date(),
                     activated: false,
+                    stopTouched: false,
                     isStopLoss: true,
-                    ocoGroupId: ocoGroupId
+                    ocoGroupId: ocoGroupId,
+                    orderType: 'OCO_STOP_LOSS'
                 };
                 
+                // Создаем ЛИМИТНЫЙ ордер (Take Profit)
                 const takeProfitOrder = {
                     id: generateOrderId(),
                     type: 'LIMIT',
@@ -2570,9 +2676,11 @@
                     status: 'ACTIVE',
                     createdAt: new Date(),
                     isTakeProfit: true,
-                    ocoGroupId: ocoGroupId
+                    ocoGroupId: ocoGroupId,
+                    orderType: 'OCO_TAKE_PROFIT'
                 };
                 
+                // Резервируем средства (только один раз, так как это один объем)
                 if (!checkAndReserveFunds(stopLossOrder)) {
                     addToLog('Ошибка: Недостаточно средств', 'error');
                     return;
@@ -2581,7 +2689,7 @@
                 state.pendingOrders.push(stopLossOrder);
                 state.orders.push(takeProfitOrder);
                 
-                addToLog(`OCO ордер размещен`, 'success');
+                addToLog(`OCO ордер размещен (Stop: $${formatPrice(stopLossTrigger)} → $${formatPrice(stopLossPrice)}, Take: $${formatPrice(takeProfitPrice)})`, 'success');
             }
 
             clearOrderForm();
@@ -2669,6 +2777,7 @@
             if (allActiveOrders.length === 0) {
                 activeOrdersHtml = `<tr><td colspan="8" class="no-data">Нет активных ордеров</td></tr>`;
             } else {
+                // Сначала отображаем OCO группы
                 const ocoGroups = new Map();
                 
                 allActiveOrders.forEach(order => {
@@ -2680,6 +2789,7 @@
                     }
                 });
                 
+                // Отображаем OCO группы
                 ocoGroups.forEach((orders, groupId) => {
                     const stopLossOrder = orders.find(o => o.isStopLoss);
                     const takeProfitOrder = orders.find(o => o.isTakeProfit);
@@ -2691,12 +2801,12 @@
                         let statusText = 'Активен';
                         let statusClass = 'status-active';
                         
-                        if (stopLossOrder.stopActivated) {
-                            statusText = 'Стоп-лосс активирован';
-                            statusClass = 'status-triggered';
-                        } else if (stopLossOrder.targetActivated) {
-                            statusText = 'Тейк-профит активирован';
-                            statusClass = 'status-triggered';
+                        if (stopLossOrder.stopTouched && !stopLossOrder.activated) {
+                            statusText = 'Стоп задет';
+                            statusClass = 'status-touched';
+                        } else if (stopLossOrder.activated) {
+                            statusText = 'Стоп активирован';
+                            statusClass = 'status-activated';
                         }
                         
                         activeOrdersHtml += `
@@ -2709,7 +2819,7 @@
                                 </td>
                                 <td>${formatQuantity(stopLossOrder.quantity)}</td>
                                 <td>$${formatAmount(stopLossOrder.amount)}</td>
-                                <td><span class="commission-badge">${stopLossOrder.isMarket ? 'Тейкер' : 'Мейкер'}</span></td>
+                                <td><span class="commission-badge">Мейкер</span></td>
                                 <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                                 <td><button class="action-btn" onclick="cancelOCOGroup('${groupId}')" title="Отменить OCO группу"><i class="fas fa-times"></i></button></td>
                             </tr>
@@ -2717,6 +2827,7 @@
                     }
                 });
                 
+                // Затем отображаем обычные ордера
                 allActiveOrders.forEach(order => {
                     if (order.ocoGroupId) return;
                     
