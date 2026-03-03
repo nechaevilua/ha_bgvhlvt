@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ВидеоМост - Экономия трафика</title>
+    <title>ВидеоМост - Загрузка на Яндекс.Диск</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         body {
@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 800px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -30,28 +30,13 @@
         h1 {
             color: #333;
             margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        h2 {
-            color: #555;
-            margin: 30px 0 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        h3 {
-            color: #666;
-            margin: 20px 0 10px;
         }
 
         .token-section {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 10px;
-            margin-bottom: 30px;
+            margin: 20px 0;
         }
 
         .input-group {
@@ -60,18 +45,12 @@
             margin: 15px 0;
         }
 
-        input, select, textarea {
+        input {
             flex: 1;
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
         }
 
         button {
@@ -84,29 +63,11 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            white-space: nowrap;
         }
 
         button:hover {
             background: #5a67d8;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button.secondary {
-            background: #48bb78;
-        }
-
-        button.secondary:hover {
-            background: #38a169;
-        }
-
-        button.danger {
-            background: #f56565;
-        }
-
-        button.danger:hover {
-            background: #e53e3e;
         }
 
         .status {
@@ -115,6 +76,8 @@
             border-radius: 8px;
             background: #f0f0f0;
             font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
         .status.success {
@@ -132,121 +95,6 @@
             color: #2c5282;
         }
 
-        .file-list {
-            border: 2px solid #f0f0f0;
-            border-radius: 10px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.3s;
-        }
-
-        .file-item:hover {
-            background: #f8f9fa;
-        }
-
-        .file-icon {
-            width: 30px;
-            font-size: 20px;
-        }
-
-        .file-name {
-            flex: 1;
-            cursor: pointer;
-            color: #333;
-        }
-
-        .file-name:hover {
-            color: #667eea;
-        }
-
-        .file-size {
-            width: 100px;
-            color: #999;
-            font-size: 13px;
-        }
-
-        .file-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .file-actions button {
-            padding: 5px 10px;
-            font-size: 12px;
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .file-actions button:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .path-nav {
-            display: flex;
-            gap: 10px;
-            padding: 10px 0;
-            margin: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .path-nav span {
-            cursor: pointer;
-            color: #667eea;
-        }
-
-        .path-nav span:hover {
-            text-decoration: underline;
-        }
-
-        .toolbar {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .tab-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
-            font-weight: 600;
-            color: #999;
-        }
-
-        .tab.active {
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
         .note {
             font-size: 12px;
             color: #999;
@@ -255,568 +103,292 @@
 
         .note.warning {
             color: #f56565;
-            font-weight: 600;
         }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-            
-            .input-group {
-                flex-direction: column;
-            }
+        .example {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎬 ВидеоМост</h1>
-        <p>Сохраняйте видео на Яндекс.Диск и смотрите на Rutube без трафика</p>
+        <p>Загружайте видео на Яндекс.Диск прямо из интернета, минуя свой компьютер</p>
 
-        <!-- Вкладки -->
-        <div class="tab-bar">
-            <div class="tab active" onclick="switchTab('disk')">💾 Яндекс.Диск</div>
-            <div class="tab" onclick="switchTab('rutube')">📺 Rutube</div>
+        <!-- Токен Яндекс.Диска -->
+        <div class="token-section">
+            <h3>🔑 Токен Яндекс.Диска</h3>
+            <div class="input-group">
+                <input type="text" id="yandex-token" placeholder="Введите OAuth-токен Яндекс.Диска">
+                <button onclick="saveToken()">Сохранить</button>
+            </div>
+            <div id="token-status" class="status"></div>
+            <p class="note">🔒 Токен хранится только в вашем браузере</p>
         </div>
 
-        <!-- Вкладка Яндекс.Диск -->
-        <div id="disk-tab" class="tab-content active">
-            <!-- Токен Яндекс.Диска -->
-            <div class="token-section">
-                <h3>🔑 Токен Яндекс.Диска</h3>
-                <div class="input-group">
-                    <input type="text" id="yandex-token" placeholder="Введите OAuth-токен Яндекс.Диска" value="">
-                    <button onclick="saveToken()">Сохранить</button>
-                </div>
-                <p class="note">🔒 Токен хранится только в вашем браузере</p>
-                <p class="note">📌 Получить токен: <a href="https://yandex.ru/dev/disk-api/doc/ru/concepts/quickstart" target="_blank">Яндекс.Диск API</a></p>
-            </div>
-
-            <!-- Сохранение видео по ссылке -->
-            <h2>📥 Сохранить видео на Диск</h2>
-            <div class="input-group">
-                <input type="url" id="video-url" placeholder="Вставьте ссылку на видео (YouTube, VK, Rutube и др.)">
-                <button onclick="saveVideoToDisk()">Сохранить</button>
-            </div>
-            <div id="save-status" class="status"></div>
-            <p class="note warning">⚠️ Видео сохраняется напрямую из интернета на ваш Яндекс.Диск. Ваш трафик не расходуется!</p>
-
-            <!-- Просмотр файлов -->
-            <h2>📂 Файлы на Диске</h2>
-            <div class="path-nav">
-                <span onclick="listFiles('/')">Корень</span>
-                <span>/</span>
-                <span id="current-path"></span>
-            </div>
-            <div class="toolbar">
-                <button onclick="createFolder()">➕ Новая папка</button>
-                <button onclick="refreshList()">🔄 Обновить</button>
-            </div>
-            <div id="file-list" class="file-list">
-                <div class="loading">⏳ Введите токен для загрузки файлов</div>
-            </div>
+        <!-- Загрузка видео -->
+        <h2>📥 Загрузить видео на Диск</h2>
+        <p>Вставьте ссылку на страницу с видео (YouTube, Rutube, VK, OK и др.):</p>
+        
+        <div class="input-group">
+            <input type="url" id="video-url" placeholder="https://rutube.ru/video/... или https://youtube.com/watch?v=...">
+            <button onclick="downloadVideo()">Загрузить на Диск</button>
         </div>
 
-        <!-- Вкладка Rutube -->
-        <div id="rutube-tab" class="tab-content">
-            <h2>📤 Загрузка на Rutube</h2>
-            
-            <!-- Авторизация Rutube -->
-            <div class="token-section">
-                <h3>🔑 Авторизация на Rutube</h3>
-                <div class="grid-2">
-                    <div>
-                        <input type="email" id="rutube-email" placeholder="Email">
-                        <input type="password" id="rutube-password" placeholder="Пароль" style="margin-top: 10px;">
-                    </div>
-                    <div>
-                        <button onclick="authRutube()" style="width: 100%; height: 78px;">Войти на Rutube</button>
-                    </div>
-                </div>
-                <div id="rutube-auth-status" class="status"></div>
-            </div>
+        <!-- Примеры ссылок -->
+        <div class="example">
+            <strong>Примеры ссылок:</strong><br>
+            • Rutube: https://rutube.ru/video/abc123/<br>
+            • YouTube: https://youtube.com/watch?v=abc123<br>
+            • VK: https://vk.com/video-123456_789012<br>
+            • OK: https://ok.ru/video/1234567890
+        </div>
 
-            <!-- Выбор видео с Диска -->
-            <h3>🎬 Выберите видео с Яндекс.Диска</h3>
-            <div class="input-group">
-                <select id="video-select" style="flex: 1;">
-                    <option value="">Сначала войдите в Rutube и загрузите список видео</option>
-                </select>
-                <button onclick="loadVideoList()" class="secondary">🔄 Загрузить список</button>
-            </div>
+        <div id="download-status" class="status"></div>
 
-            <!-- Параметры загрузки -->
-            <h3>⚙️ Параметры видео</h3>
-            <div class="grid-2">
-                <div>
-                    <input type="text" id="video-title" placeholder="Название видео">
-                    <textarea id="video-description" placeholder="Описание видео" rows="4" style="margin-top: 10px; width: 100%;"></textarea>
-                </div>
-                <div>
-                    <select id="video-category" style="width: 100%;">
-                        <option value="1">Авто</option>
-                        <option value="2">Блог</option>
-                        <option value="3">Игры</option>
-                        <option value="4">Музыка</option>
-                        <option value="5">Образование</option>
-                        <option value="6">Развлечения</option>
-                        <option value="7">Спорт</option>
-                        <option value="8">Технологии</option>
-                    </select>
-                    <label style="display: block; margin-top: 10px;">
-                        <input type="checkbox" id="video-private"> Приватное видео
-                    </label>
-                </div>
-            </div>
+        <!-- Информация о процессе -->
+        <div class="note warning">
+            ⚡ Видео загружается напрямую из интернета на ваш Яндекс.Диск!<br>
+            Ваш трафик НЕ расходуется, только управляющие команды.
+        </div>
 
-            <button onclick="uploadToRutube()" style="width: 100%; margin-top: 20px; padding: 15px;" class="secondary">📤 Загрузить на Rutube</button>
-            <div id="rutube-upload-status" class="status"></div>
-            
-            <p class="note warning">⚡ Видео передаётся напрямую с Яндекс.Диска на Rutube! Ваш трафик НЕ расходуется.</p>
+        <!-- История загрузок -->
+        <h2 style="margin-top: 30px;">📋 История загрузок</h2>
+        <div id="history-list" class="status info">
+            Здесь появится история загрузок
         </div>
     </div>
 
     <script>
-        // ==================== ОБЩИЕ ФУНКЦИИ ====================
-        
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            if (tab === 'disk') {
-                document.querySelector('.tab').classList.add('active');
-                document.getElementById('disk-tab').classList.add('active');
-            } else {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('rutube-tab').classList.add('active');
-            }
-        }
-
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        // ==================== ЯНДЕКС.ДИСК ====================
-
+        // Хранилище токена
         let yandexToken = localStorage.getItem('yandex_token') || '';
-        let currentPath = '/';
-        
         if (yandexToken) {
             document.getElementById('yandex-token').value = yandexToken;
-            listFiles('/');
+            showStatus('token-status', '✅ Токен загружен из сохранений', 'success');
         }
+
+        // История загрузок
+        let downloadHistory = JSON.parse(localStorage.getItem('download_history') || '[]');
+        updateHistoryDisplay();
 
         function saveToken() {
             yandexToken = document.getElementById('yandex-token').value.trim();
             if (yandexToken) {
                 localStorage.setItem('yandex_token', yandexToken);
-                showStatus('save-status', '✅ Токен сохранён', 'success');
-                listFiles('/');
+                showStatus('token-status', '✅ Токен сохранён', 'success');
+            } else {
+                showStatus('token-status', '❌ Введите токен', 'error');
             }
         }
 
-        async function yandexRequest(endpoint, options = {}) {
-            if (!yandexToken) {
-                throw new Error('Нет токена Яндекс.Диска');
-            }
+        async function downloadVideo() {
+            const pageUrl = document.getElementById('video-url').value.trim();
             
-            const url = `https://cloud-api.yandex.net/v1/disk/${endpoint}`;
-            const response = await fetch(url, {
-                ...options,
-                headers: {
-                    'Authorization': `OAuth ${yandexToken}`,
-                    ...options.headers
-                }
-            });
-            
-            if (!response.ok) {
-                const error = await response.text();
-                throw new Error(`Ошибка API: ${response.status} - ${error}`);
-            }
-            
-            return await response.json();
-        }
-
-        async function listFiles(path = '/') {
-            if (!yandexToken) {
-                document.getElementById('file-list').innerHTML = '<div class="loading">🔑 Введите токен Яндекс.Диска</div>';
+            if (!pageUrl) {
+                showStatus('download-status', '❌ Введите ссылку на видео', 'error');
                 return;
             }
 
-            currentPath = path;
-            document.getElementById('current-path').textContent = path;
-            
+            if (!yandexToken) {
+                showStatus('download-status', '❌ Сначала сохраните токен Яндекс.Диска', 'error');
+                return;
+            }
+
+            showStatus('download-status', '🔄 Получаю прямую ссылку на видео...', 'info');
+
             try {
-                const data = await yandexRequest(`resources?path=${encodeURIComponent(path)}&limit=100`);
-                displayFiles(data._embedded?.items || []);
+                // ШАГ 1: Получаем прямую ссылку на видео через публичные API
+                const videoDirectUrl = await extractVideoUrl(pageUrl);
+                
+                if (!videoDirectUrl) {
+                    throw new Error('Не удалось получить прямую ссылку на видео');
+                }
+
+                showStatus('download-status', `✅ Прямая ссылка получена!\n${videoDirectUrl}\n\n🔄 Отправляю на Яндекс.Диск...`, 'info');
+
+                // ШАГ 2: Отправляем ссылку на Яндекс.Диск для загрузки
+                const result = await uploadToYandexDisk(videoDirectUrl, pageUrl);
+                
+                // Сохраняем в историю
+                addToHistory(pageUrl, result);
+                
+                showStatus('download-status', 
+                    `✅ Видео успешно отправлено на загрузку!\n\n` +
+                    `📁 Путь на Диске: ${result.diskPath}\n` +
+                    `🆔 Операция: ${result.operationId}\n\n` +
+                    `⏳ Видео будет загружено автоматически. Проверьте Диск через несколько минут.`, 
+                    'success');
+
             } catch (error) {
-                document.getElementById('file-list').innerHTML = `<div class="status error">❌ ${error.message}</div>`;
+                showStatus('download-status', `❌ Ошибка: ${error.message}`, 'error');
             }
         }
 
-        function displayFiles(files) {
-            const container = document.getElementById('file-list');
+        async function extractVideoUrl(pageUrl) {
+            // Пытаемся получить видео через разные публичные API
             
-            if (files.length === 0) {
-                container.innerHTML = '<div class="loading">📂 Папка пуста</div>';
-                return;
-            }
-
-            let html = '';
-            files.sort((a, b) => {
-                if (a.type === 'dir' && b.type !== 'dir') return -1;
-                if (a.type !== 'dir' && b.type === 'dir') return 1;
-                return a.name.localeCompare(b.name);
-            });
-
-            files.forEach(file => {
-                const isVideo = file.media_type === 'video' || file.name.match(/\.(mp4|avi|mkv|mov|wmv|flv)$/i);
-                const icon = file.type === 'dir' ? '📁' : (isVideo ? '🎬' : '📄');
-                
-                html += `
-                    <div class="file-item">
-                        <span class="file-icon">${icon}</span>
-                        <span class="file-name" onclick="${file.type === 'dir' ? `listFiles('${file.path}')` : ''}">${file.name}</span>
-                        <span class="file-size">${file.size ? formatBytes(file.size) : ''}</span>
-                        <div class="file-actions">
-                            ${isVideo ? `<button onclick="selectForRutube('${file.path}', '${file.name}')" title="Загрузить на Rutube">📤</button>` : ''}
-                            <button onclick="copyPublicLink('${file.path}')" title="Копировать ссылку">🔗</button>
-                            <button onclick="deleteFile('${file.path}')" title="Удалить">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        async function saveVideoToDisk() {
-            const url = document.getElementById('video-url').value.trim();
-            if (!url) {
-                showStatus('save-status', '❌ Введите ссылку на видео', 'error');
-                return;
-            }
-
-            showStatus('save-status', '🔄 Получаю информацию о видео...', 'info');
-
+            // Метод 1: Piped (для YouTube и многих других)
             try {
-                // Используем yt-dlp API через публичный сервис
-                const infoResponse = await fetch(`https://pipedapi.kavin.rocks/streams/${encodeURIComponent(url)}`);
-                if (!infoResponse.ok) throw new Error('Не удалось получить информацию о видео');
-                
-                const videoInfo = await infoResponse.json();
-                
-                // Находим лучшее качество
-                let videoUrl = '';
-                if (videoInfo.videoStreams && videoInfo.videoStreams.length > 0) {
-                    const streams = videoInfo.videoStreams;
-                    const bestStream = streams.reduce((best, current) => {
-                        const bestQuality = parseInt(best.quality) || 0;
-                        const currentQuality = parseInt(current.quality) || 0;
-                        return currentQuality > bestQuality ? current : best;
-                    });
-                    videoUrl = bestStream.url;
+                // Извлекаем ID видео из ссылки YouTube
+                if (pageUrl.includes('youtube.com') || pageUrl.includes('youtu.be')) {
+                    const videoId = extractYoutubeId(pageUrl);
+                    if (videoId) {
+                        const response = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            // Берём видео в лучшем качестве
+                            if (data.videoStreams && data.videoStreams.length > 0) {
+                                // Сортируем по качеству
+                                const streams = data.videoStreams.sort((a, b) => {
+                                    const q1 = parseInt(a.quality) || 0;
+                                    const q2 = parseInt(b.quality) || 0;
+                                    return q2 - q1;
+                                });
+                                return streams[0].url;
+                            }
+                        }
+                    }
                 }
+            } catch (e) {
+                console.log('Piped API error:', e);
+            }
 
-                if (!videoUrl) {
-                    throw new Error('Не найдена прямая ссылка на видео');
+            // Метод 2: Rutube API (если есть)
+            if (pageUrl.includes('rutube.ru')) {
+                try {
+                    // Извлекаем ID видео из Rutube
+                    const matches = pageUrl.match(/rutube\.ru\/video\/([a-f0-9]+)/);
+                    if (matches && matches[1]) {
+                        const videoId = matches[1];
+                        const response = await fetch(`https://rutube.ru/api/video/${videoId}/`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.video_url) {
+                                return data.video_url;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log('Rutube API error:', e);
                 }
+            }
 
-                const filename = `video_${Date.now()}.mp4`;
-                showStatus('save-status', '🔄 Сохраняю на Яндекс.Диск...', 'info');
+            // Метод 3: Используем yt-dlp через публичный API
+            try {
+                const response = await fetch(`https://ytdl.mixkoap.com/api/info?url=${encodeURIComponent(pageUrl)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.formats && data.formats.length > 0) {
+                        // Ищем формат с видео
+                        const videoFormat = data.formats.find(f => f.vcodec !== 'none' && f.acodec !== 'none') || 
+                                           data.formats.find(f => f.vcodec !== 'none');
+                        if (videoFormat && videoFormat.url) {
+                            return videoFormat.url;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('ytdl API error:', e);
+            }
 
-                // Сохраняем на Яндекс.Диск по ссылке
-                const response = await fetch('https://cloud-api.yandex.net/v1/disk/resources/upload', {
+            throw new Error('Не удалось извлечь видео. Попробуйте другую ссылку или сервис.');
+        }
+
+        function extractYoutubeId(url) {
+            const patterns = [
+                /youtube\.com\/watch\?v=([^&]+)/,
+                /youtu\.be\/([^?]+)/,
+                /youtube\.com\/embed\/([^?]+)/,
+                /youtube\.com\/v\/([^?]+)/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        }
+
+        async function uploadToYandexDisk(videoUrl, originalPageUrl) {
+            // Генерируем имя файла
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `video_${timestamp}.mp4`;
+            const diskPath = `/Видео/${filename}`;
+
+            // Запрос к API Яндекс.Диска для загрузки по URL
+            const response = await fetch(
+                `https://cloud-api.yandex.net/v1/disk/resources/upload?` + 
+                `path=${encodeURIComponent(diskPath)}&` +
+                `url=${encodeURIComponent(videoUrl)}&` +
+                `overwrite=true`,
+                {
                     method: 'POST',
                     headers: {
                         'Authorization': `OAuth ${yandexToken}`,
                         'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        url: videoUrl,
-                        path: `/Видео/${filename}`
-                    })
-                });
-
-                if (response.ok) {
-                    showStatus('save-status', '✅ Видео сохраняется на Диск! Обновите список через минуту.', 'success');
-                    setTimeout(() => listFiles('/'), 5000);
-                } else {
-                    const error = await response.text();
-                    throw new Error(error);
+                    }
                 }
+            );
 
-            } catch (error) {
-                showStatus('save-status', `❌ Ошибка: ${error.message}`, 'error');
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(`Ошибка API Диска: ${response.status} - ${error}`);
             }
-        }
 
-        async function copyPublicLink(path) {
-            try {
-                // Публикуем файл
-                await yandexRequest('resources/publish', {
-                    method: 'PUT',
-                    body: JSON.stringify({ path: path })
-                });
-
-                // Получаем публичную ссылку
-                const data = await yandexRequest(`resources?path=${encodeURIComponent(path)}`);
-                if (data.public_url) {
-                    await navigator.clipboard.writeText(data.public_url);
-                    alert('✅ Ссылка скопирована в буфер обмена');
-                }
-            } catch (error) {
-                alert('❌ Ошибка: ' + error.message);
-            }
-        }
-
-        async function deleteFile(path) {
-            if (!confirm('Удалить файл?')) return;
+            const data = await response.json();
             
-            try {
-                await yandexRequest(`resources?path=${encodeURIComponent(path)}`, {
-                    method: 'DELETE'
-                });
-                listFiles(currentPath);
-            } catch (error) {
-                alert('❌ Ошибка: ' + error.message);
-            }
+            return {
+                diskPath: diskPath,
+                operationId: data.operation_id || 'неизвестно',
+                status: 'загружается'
+            };
         }
 
-        async function createFolder() {
-            const name = prompt('Название новой папки:');
-            if (!name) return;
-
-            try {
-                await yandexRequest('resources', {
-                    method: 'PUT',
-                    body: JSON.stringify({ path: currentPath + '/' + name })
-                });
-                listFiles(currentPath);
-            } catch (error) {
-                alert('❌ Ошибка: ' + error.message);
-            }
+        function addToHistory(url, result) {
+            const entry = {
+                timestamp: new Date().toLocaleString(),
+                url: url,
+                diskPath: result.diskPath,
+                operationId: result.operationId
+            };
+            
+            downloadHistory.unshift(entry); // Добавляем в начало
+            if (downloadHistory.length > 10) downloadHistory.pop(); // Храним последние 10
+            
+            localStorage.setItem('download_history', JSON.stringify(downloadHistory));
+            updateHistoryDisplay();
         }
 
-        function refreshList() {
-            listFiles(currentPath);
-        }
-
-        // ==================== RUTUBE ====================
-
-        let rutubeSession = null;
-        let rutubeUserId = null;
-        let selectedVideoPath = null;
-        let selectedVideoName = null;
-
-        // Реальные endpoints Rutube (найденные через анализ сети)
-        const RUTUBE_API = {
-            login: 'https://rutube.ru/api/auth/login/',
-            upload: 'https://rutube.ru/api/video/upload/url/',
-            categories: 'https://rutube.ru/api/categories/',
-            video: 'https://rutube.ru/api/video/'
-        };
-
-        async function authRutube() {
-            const email = document.getElementById('rutube-email').value.trim();
-            const password = document.getElementById('rutube-password').value.trim();
-
-            if (!email || !password) {
-                showStatus('rutube-auth-status', '❌ Введите email и пароль', 'error');
+        function updateHistoryDisplay() {
+            const historyDiv = document.getElementById('history-list');
+            
+            if (downloadHistory.length === 0) {
+                historyDiv.innerHTML = '📭 История загрузок пуста';
                 return;
             }
 
-            showStatus('rutube-auth-status', '🔄 Авторизация на Rutube...', 'info');
-
-            try {
-                // Реальный запрос к API Rutube
-                const response = await fetch(RUTUBE_API.login, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    // Rutube возвращает sessionid в cookie или в ответе
-                    rutubeSession = response.headers.get('set-cookie') || data.sessionid;
-                    rutubeUserId = data.id;
-                    
-                    showStatus('rutube-auth-status', '✅ Авторизация успешна', 'success');
-                    
-                    // Загружаем список видео с Диска
-                    loadVideoList();
-                } else {
-                    const error = await response.text();
-                    throw new Error(`Ошибка авторизации: ${response.status}`);
-                }
-
-            } catch (error) {
-                showStatus('rutube-auth-status', `❌ ${error.message}`, 'error');
-                
-                // Для тестирования без реального API
-                console.log('Используется тестовый режим');
-                rutubeSession = 'test_session_123';
-                showStatus('rutube-auth-status', '⚠️ Тестовый режим (нет подключения к Rutube)', 'info');
-                loadVideoList();
-            }
-        }
-
-        async function loadVideoList() {
-            if (!yandexToken) {
-                alert('Сначала сохраните токен Яндекс.Диска');
-                switchTab('disk');
-                return;
-            }
-
-            try {
-                // Получаем список видео с Яндекс.Диска
-                const data = await yandexRequest('resources?path=/&limit=100');
-                const videos = data._embedded?.items.filter(item => 
-                    item.media_type === 'video' || item.name.match(/\.(mp4|avi|mkv|mov)$/i)
-                ) || [];
-
-                const select = document.getElementById('video-select');
-                select.innerHTML = '<option value="">Выберите видео</option>';
-                
-                videos.forEach(video => {
-                    const option = document.createElement('option');
-                    option.value = video.path;
-                    option.textContent = video.name;
-                    select.appendChild(option);
-                });
-
-                if (videos.length === 0) {
-                    select.innerHTML = '<option value="">Нет видео на Диске</option>';
-                }
-
-            } catch (error) {
-                alert('Ошибка загрузки списка: ' + error.message);
-            }
-        }
-
-        function selectForRutube(path, name) {
-            selectedVideoPath = path;
-            selectedVideoName = name;
+            let html = '';
+            downloadHistory.forEach((item, index) => {
+                html += `
+                    <div style="margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.5); border-radius: 5px;">
+                        <strong>${item.timestamp}</strong><br>
+                        📎 ${item.url.substring(0, 50)}...<br>
+                        📁 ${item.diskPath}
+                    </div>
+                `;
+            });
             
-            // Переключаемся на вкладку Rutube
-            switchTab('rutube');
-            
-            // Заполняем название
-            document.getElementById('video-title').value = name;
-            
-            // Выбираем в списке
-            const select = document.getElementById('video-select');
-            for (let i = 0; i < select.options.length; i++) {
-                if (select.options[i].value === path) {
-                    select.selectedIndex = i;
-                    break;
-                }
-            }
+            historyDiv.innerHTML = html;
         }
 
-        async function uploadToRutube() {
-            if (!rutubeSession) {
-                showStatus('rutube-upload-status', '❌ Сначала войдите в Rutube', 'error');
-                return;
-            }
-
-            const select = document.getElementById('video-select');
-            if (!select.value) {
-                showStatus('rutube-upload-status', '❌ Выберите видео', 'error');
-                return;
-            }
-
-            const title = document.getElementById('video-title').value || select.options[select.selectedIndex].text;
-            const description = document.getElementById('video-description').value || 'Загружено через ВидеоМост';
-            const category = document.getElementById('video-category').value;
-            const isPrivate = document.getElementById('video-private').checked;
-
-            showStatus('rutube-upload-status', '🔄 Подготавливаю загрузку...', 'info');
-
-            try {
-                // 1. Получаем публичную ссылку на видео с Яндекс.Диска
-                await yandexRequest('resources/publish', {
-                    method: 'PUT',
-                    body: JSON.stringify({ path: select.value })
-                });
-
-                const fileInfo = await yandexRequest(`resources?path=${encodeURIComponent(select.value)}`);
-                
-                if (!fileInfo.public_url) {
-                    throw new Error('Не удалось получить публичную ссылку');
-                }
-
-                showStatus('rutube-upload-status', '🔄 Отправляю на Rutube...', 'info');
-
-                // 2. Отправляем ссылку на Rutube
-                // Реальный endpoint Rutube для загрузки по ссылке
-                const uploadResponse = await fetch(RUTUBE_API.upload, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cookie': `sessionid=${rutubeSession}`,
-                        'X-CSRFToken': rutubeSession
-                    },
-                    body: JSON.stringify({
-                        url: fileInfo.public_url,
-                        title: title,
-                        description: description,
-                        category_id: parseInt(category),
-                        is_hidden: isPrivate ? 1 : 0,
-                        is_ads_enabled: 0,
-                        is_comments_enabled: 1
-                    })
-                });
-
-                if (uploadResponse.ok) {
-                    const result = await uploadResponse.json();
-                    showStatus('rutube-upload-status', 
-                        '✅ Видео отправлено на Rutube! Оно появится в вашем аккаунте после обработки.', 
-                        'success');
-                } else {
-                    // Если API не работает, показываем информацию для ручной загрузки
-                    const publicUrl = fileInfo.public_url;
-                    showStatus('rutube-upload-status', 
-                        `⚠️ Автоматическая загрузка не удалась. Используйте ссылку для ручной загрузки на Rutube:\n${publicUrl}`, 
-                        'info');
-                    
-                    // Копируем ссылку в буфер обмена
-                    await navigator.clipboard.writeText(publicUrl);
-                }
-
-            } catch (error) {
-                showStatus('rutube-upload-status', `❌ Ошибка: ${error.message}`, 'error');
-            }
-        }
-
-        // Вспомогательная функция для показа статусов
-        function showStatus(elementId, message, type = 'info') {
+        function showStatus(elementId, message, type) {
             const element = document.getElementById(elementId);
             element.textContent = message;
             element.className = `status ${type}`;
-        }
-
-        // Загружаем список видео при старте, если есть токен
-        if (yandexToken) {
-            setTimeout(() => loadVideoList(), 1000);
         }
     </script>
 </body>
